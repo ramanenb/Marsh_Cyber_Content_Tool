@@ -7,7 +7,7 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route exact path="/" element={<SlideGeneration />} />
+        <Route exact path="/" element={<VizDashboard />} />
         <Route path="/dashboard" element={<VizDashboard />} />
         <Route path="/slidesCreationTool" element={<SlideGeneration />} />
         <Route path="*" element={<h2>You have entered a wrong url</h2>} />

@@ -19,3 +19,4 @@ app.add_middleware(
 # add posts router
 # REQUEST URL ->  http://127.0.0.1:8000/api/list_incidents
 app.include_router(post_router, prefix="/api", tags=["incidents"])
+app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_month"])
