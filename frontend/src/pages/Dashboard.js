@@ -1,30 +1,54 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend} from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+        Line, LineChart, Pie, Cell, PieChart } from "recharts";
+import { IndustryOverTime_LineChart, Event_DonutChart } from "./Charts";
 
-export default function VizDashboard() {
-  const [incidentsByIndustryYearMonth, setIncidents] = useState([]);
-  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
+// ✅ Custom hook to fetch data safely
+function useFetchData(endpoint_link) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/aggregate_by_industry_and_month", {
+    fetch(endpoint_link, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     })
       .then((resp) => resp.json())
       .then((resp) => {
-        const byIndustry = resp.result?.by_industry || [];
-        const totalsByMonth = resp.result?.totals_by_month || [];
-        setIncidents(byIndustry.concat(totalsByMonth));
-        })
-      .catch((error) => console.log(error));
-  }, []);
+        const byIndustry = resp?.result?.by_industry || [];
+        const totals_by_group = resp?.result?.totals_by_group || [];
+        setData([...byIndustry, ...totals_by_group]);
+      })
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, [endpoint_link]);
 
-  // Get all unique industries for DROPDOWN (avoid crash on empty data)
+  return { data, loading, error };
+}
+
+export default function VizDashboard() {
+  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
+
+  // ✅ Fetch datasets
+  const {
+    data: incidentsByIndustryYearMonth,
+    loading: loadingYearMonth,
+  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_month");
+
+  const {
+    data: incidentsByIndustry_EventSubtype,
+    loading: loadingSubtype,
+  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=event_subtype");
+
+  const {
+    data: incidentsByIndustry_Motive,
+    loading: loadingMotive,
+  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=motive");
+
+  // ✅ Build dropdown options safely
   const industries = [
-    ...new Set(incidentsByIndustryYearMonth.map((item) => item.industry).filter(Boolean)),
+    ...new Set((incidentsByIndustryYearMonth || []).map((item) => item.industry).filter(Boolean)),
   ];
 
   return (
@@ -34,53 +58,45 @@ export default function VizDashboard() {
         <a href="/slidesCreationTool">Cyber Content Tool Page</a>
       </li>
 
-    {/* Dropdown to select industry */}
+      {/* Industry Dropdown */}
       <div>
-        <select
-          value={selectedIndustry}
-          onChange={(e) => setSelectedIndustry(e.target.value)}
-        >
-          {industries.map((ind) => (
-            <option key={ind} value={ind}>
-              {ind}
-            </option>
-          ))}
-        </select>
+        {loadingYearMonth ? (
+          <p>Loading industries...</p>
+        ) : (
+          <select
+            value={selectedIndustry}
+            onChange={(e) => setSelectedIndustry(e.target.value)}
+          >
+            {industries.map((ind) => (
+              <option key={ind} value={ind}>
+                {ind}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-    {/* Pass data down into chart */}
-      <MyChart incidents={incidentsByIndustryYearMonth} selectedIndustry={selectedIndustry} />
-    </div>
-  );
-}
-
-
-function MyChart({ incidents, selectedIndustry }) {
-
-  // Filter dynamically
-  const filteredData = incidents
-    .filter((item) => item.industry === selectedIndustry)
-    .map((item) => ({
-      ...item,
-      yearMonth: `${item.year}-${String(item.month).padStart(2, "0")}`, // YYYY-MM
-    }));
-
-  return (
-    <div>
-      <div>
-        <LineChart
-          width={730}
-          height={250}
-          data={filteredData}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="yearMonth" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="count" stroke="#8884d8" />
-        </LineChart>
-      </div>
+      {/* Charts */}
+      {!loadingYearMonth && (
+        <IndustryOverTime_LineChart
+          incident_data={incidentsByIndustryYearMonth}
+          selectedIndustry={selectedIndustry}
+        />
+      )}
+      {!loadingSubtype && (
+        <Event_DonutChart
+          incident_data={incidentsByIndustry_EventSubtype}
+          selectedIndustry={selectedIndustry}
+          col_used="event_subtype"
+        />
+      )}
+      {!loadingMotive && (
+        <Event_DonutChart
+          incident_data={incidentsByIndustry_Motive}
+          selectedIndustry={selectedIndustry}
+          col_used="motive"
+        />
+      )}
     </div>
   );
 }

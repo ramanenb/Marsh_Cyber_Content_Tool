@@ -1,5 +1,5 @@
 # this file is backend/app/routes/post_routes.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.config import db
 router = APIRouter()
 
@@ -20,7 +20,7 @@ def incident_extractor(cyber_incident) -> dict:
         "actor_country": str(cyber_incident["actor_country"])
     }
 
-# Read the top 9 rows of data from MongoDB
+# 1. Read the top 9 rows of data from MongoDB
 @router.get("/list_incidents", response_description="List all cyber incidents from MongoDB")
 async def list_incidents():
 
@@ -28,7 +28,7 @@ async def list_incidents():
     posts = await db.europec_maryland_test.find().to_list(3)
     return {"status":201, "result":[incident_extractor(post) for post in posts] }
 
-# Aggregates cyber incidents by industry and month, and also provides a total count of incidents for all industries per month.
+# 2. Aggregates cyber incidents by industry and month, and also provides a total count of incidents for all industries per month.
 @router.get("/aggregate_by_industry_and_month", response_description="Aggregate cyber incidents by industry and month, including total incidents per month.")
 async def aggregate_by_industry_and_month():
   
@@ -83,7 +83,7 @@ async def aggregate_by_industry_and_month():
                         }
                     ],
                     # Sub-pipeline 2: Get total count for all industries by year,month
-                    "totals_by_month": [
+                    "totals_by_group": [
                         {
                             "$group": {
                                 "_id": {
@@ -105,8 +105,7 @@ async def aggregate_by_industry_and_month():
                         {
                             "$sort": {
                                 "year": 1,
-                                "month": 1,
-                                "industry": 1
+                                "month": 1
                             }
                         }
                     ]
@@ -122,6 +121,150 @@ async def aggregate_by_industry_and_month():
             return {"status": 201, "result": result[0]}
         else:
             return {"status": 201, "result": {"by_industry": [], "totals_by_month": []}}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# 3. Aggregates cyber incidents by industry, and count by the event_subtype.
+@router.get("/aggregate_by_industry", response_description="Aggregate cyber incidents by industry and another field.")
+async def aggregate_by_industry(
+    group_by_field: str = Query("event_subtype", enum=["event_subtype", "affected_country", "motive"])
+):
+    try:
+        pipeline = [
+            {
+                "$facet": {
+                    "by_industry": [
+                        {
+                            "$group": {
+                                "_id": {
+                                    "industry": "$affected_industry",
+                                    group_by_field: f"${group_by_field}"
+                                },
+                                "count": {"$sum": 1}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "industry": "$_id.industry",
+                                group_by_field: f"$_id.{group_by_field}",
+                                "count": "$count"
+                            }
+                        },
+                        {
+                            "$sort": {
+                                "industry": 1,
+                                "count": -1
+                            }
+                        }
+                    ],
+                    "totals_by_group": [
+                        {
+                            "$group": {
+                                "_id": f"${group_by_field}",
+                                "count": {"$sum": 1}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "industry": "All Industries",
+                                group_by_field: "$_id",
+                                "count": "$count"
+                            }
+                        },
+                        {
+                            "$sort": {
+                                "count": -1
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+
+        cursor = db.europec_maryland_test.aggregate(pipeline)
+        result = await cursor.to_list(None)
+
+        if result:
+            return {"status": 201, "result": result[0]}
+        else:
+            return {"status": 201, "result": []}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# 4. Aggregates cyber incidents by industry, and count by the actor type & have an extra field actor_type.
+@router.get("/aggregate_by_industry_and_actors", response_description="Aggregate cyber incidents by industry and actors.")
+async def aggregate_by_industry_AND_actors():
+    try:
+        pipeline = [
+            {
+                "$facet": {
+                    "by_industry": [
+                        {
+                            "$group": {
+                                "_id": {
+                                    "industry": "$affected_industry",
+                                    "actor": "$actor",
+                                    "actor_type": "$actor_type"
+                                },
+                                "count": {"$sum": 1}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "industry": "$_id.industry",
+                                "actor": "$_id.actor",
+                                "actor_type": "$_id.actor_type",
+                                "count": "$count"
+                            }
+                        },
+                        {
+                            "$sort": {
+                                "industry": 1,
+                                "count": -1
+                            }
+                        }
+                    ],
+                    "totals_by_group": [
+                        {
+                            "$group": {
+                                "_id": {
+                                    "actor": "$actor",
+                                    "actor_type": "$actor_type"
+                                },
+                                "count": {"$sum": 1}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "industry": "All Industries",
+                                "actor": "$_id.actor",
+                                "actor_type": "$_id.actor_type",
+                                "count": "$count"
+                            }
+                        },
+                        {
+                            "$sort": {
+                                "count": -1
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+
+        cursor = db.europec_maryland_test.aggregate(pipeline)
+        result = await cursor.to_list(None)
+
+        if result:
+            return {"status": 201, "result": result[0]}
+        else:
+            return {"status": 201, "result": []}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

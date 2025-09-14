@@ -20,3 +20,9 @@ app.add_middleware(
 # REQUEST URL ->  http://127.0.0.1:8000/api/list_incidents
 app.include_router(post_router, prefix="/api", tags=["incidents"])
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_month"])
+
+app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?group_by_field=event_subtype"])
+app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?group_by_field=affected_country"])
+app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?group_by_field=motive"])
+
+app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_actors"])
