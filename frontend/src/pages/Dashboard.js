@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-        Line, LineChart, Pie, Cell, PieChart } from "recharts";
-import { IndustryOverTime_LineChart, Event_DonutChart } from "./Charts";
+        Line, LineChart, Pie, Cell, PieChart, ResponsiveContainer } from "recharts";
+import { IndustryOverTime_LineChart, Event_DonutChart, AffectCountry_BarChart, ActorType_BarChart } from "./Charts";
 
 // ✅ Custom hook to fetch data safely
 function useFetchData(endpoint_link) {
@@ -45,6 +45,16 @@ export default function VizDashboard() {
     data: incidentsByIndustry_Motive,
     loading: loadingMotive,
   } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=motive");
+
+  const {
+    data: incidentsByIndustry_AffectedCountry,
+    loading: loadingAfectedCountry,
+  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=affected_country");
+
+  const {
+    data: incidentsByIndustry_Actor,
+    loading: loadingActor,
+  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_actors");
 
   // ✅ Build dropdown options safely
   const industries = [
@@ -97,6 +107,20 @@ export default function VizDashboard() {
           col_used="motive"
         />
       )}
+      <div>
+        {!loadingAfectedCountry && (
+          <AffectCountry_BarChart
+            incident_data={incidentsByIndustry_AffectedCountry}
+            selectedIndustry={selectedIndustry}
+          />
+        )}
+        {!loadingActor && (
+          <ActorType_BarChart
+            incident_data={incidentsByIndustry_Actor}
+            selectedIndustry={selectedIndustry}
+          />
+        )}
+      </div>
     </div>
   );
 }
