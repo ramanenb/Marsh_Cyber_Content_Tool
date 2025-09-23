@@ -40,8 +40,8 @@ function Dashboard() {
       {/* First row of the Dashboard */}
       <MDBox py={3}>
       
-        <MDBox mt={4.5}>
-          <Grid container spacing={3}>
+        <MDBox mt={2}>
+          <Grid container spacing={2.5}>
             <Grid item xs={12} md={6} lg={8}>
               <MDBox mb={3}>
                 <ReportsLineChart
@@ -79,13 +79,13 @@ function Dashboard() {
           </Grid>
         </MDBox>
 
-        <MDBox mt={4.5}>
+        <MDBox mt={3}>
           <Grid container spacing={3}>
 
             <Grid item xs={12} md={6} lg={8}>
               <MDBox mb={3}>
                 <HorizontalBarChart
-                  color="info"
+                  color="secondary"
                   title="Who are the attackers?"
                   description="Avg number of attacks is 5 with APT29 is the most active threat actor at 5 attacks"
                   date="campaign sent 2 days ago"
@@ -97,9 +97,9 @@ function Dashboard() {
             <Grid item xs={12} md={6} lg={4}>
               <MDBox mb={3}>
                 <ReportsBarChart
-                  color="info"
+                  color="secondary"
                   title="What drives attackers?"
-                  description="Money is the most common motive at 60%"
+                  description="Money is the most common motive at 60% (50) followed by Espionage"
                   date="campaign sent 2 days ago"
                   chart={reportsBarChartData}
                 />

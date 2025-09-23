@@ -73,7 +73,7 @@ export default styled(Badge)(({ theme, ownerState }) => {
     const backgroundValue = gradients[colorProp]
       ? linearGradient(gradients[colorProp].main, gradients[colorProp].state)
       : linearGradient(gradients.info.main, gradients.info.state);
-    const colorValue = colorProp === "light" ? dark.main : white.main;
+    const colorValue = colorProp === "light" ? dark.main : "black";
 
     return {
       background: backgroundValue,
@@ -102,7 +102,7 @@ export default styled(Badge)(({ theme, ownerState }) => {
     position: "static",
     marginLeft: pxToRem(8),
     transform: "none",
-    fontSize: pxToRem(9),
+    fontSize: pxToRem(11),
   });
 
   // styles for the badge with container={true}

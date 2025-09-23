@@ -24,10 +24,10 @@ function DataTableBodyCell({ noBorder, align, children }) {
     <MDBox
       component="td"
       textAlign={align}
-      py={1.5}
+      py={1}
       px={3}
       sx={({ palette: { light }, typography: { size }, borders: { borderWidth } }) => ({
-        fontSize: size.sm,
+        fontSize: size.xs,
         borderBottom: noBorder ? "none" : `${borderWidth[1]} solid ${light.main}`,
       })}
     >
@@ -35,7 +35,7 @@ function DataTableBodyCell({ noBorder, align, children }) {
         display="inline-block"
         width="max-content"
         color="text"
-        sx={{ verticalAlign: "middle" }}
+        sx={{ verticalAlign: "middle"}}
       >
         {children}
       </MDBox>
@@ -46,7 +46,7 @@ function DataTableBodyCell({ noBorder, align, children }) {
 // Setting default values for the props of DataTableBodyCell
 DataTableBodyCell.defaultProps = {
   noBorder: false,
-  align: "left",
+  align: "left"
 };
 
 // Typechecking props for the DataTableBodyCell

@@ -2,6 +2,8 @@
 # Environment variables - that contains the important API keys & secrets
 .env
 
+frontend_old/ 
+
 # Python Virtual Environments
 .venv/
 venv/

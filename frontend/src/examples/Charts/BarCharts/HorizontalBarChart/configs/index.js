@@ -43,7 +43,7 @@ function configs(labels, datasets) {
           ticks: {
             display: true,
             color: "#b2b9bf",
-            padding: 10,
+            padding: 12,
             font: {
               size: 11,
               family: typography.fontFamily,
@@ -56,20 +56,14 @@ function configs(labels, datasets) {
           grid: {
             drawBorder: false,
             display: false,
-            drawOnChartArea: true,
+            drawOnChartArea: false,
             drawTicks: true,
-            color: "#c1c4ce5c",
+            color: "#c1c4ce5c"
           },
           ticks: {
             display: true,
             color: "#b2b9bf",
-            padding: 20,
-            font: {
-              size: 11,
-              family: typography.fontFamily,
-              style: "normal",
-              lineHeight: 2,
-            },
+            padding: 12
           },
         },
       },
