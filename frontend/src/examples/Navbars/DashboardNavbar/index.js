@@ -27,6 +27,11 @@ import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import Icon from "@mui/material/Icon";
+import Box from '@mui/material/Box';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -53,7 +58,7 @@ import {
   setOpenConfigurator,
 } from "context";
 
-function DashboardNavbar({ absolute, light, isMini }) {
+function DashboardNavbar({ absolute, light, isMini, dashboardView = false }) {
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
@@ -110,6 +115,13 @@ function DashboardNavbar({ absolute, light, isMini }) {
     </Menu>
   );
 
+  // This part is to build the industry filter dropdown
+  const [industry, setIndustry] = useState('All Industries');
+
+  const handleChange = (event) => {
+    setIndustry(event.target.value);
+  };
+
   // Styles for the navbar icons
   const iconsStyle = ({ palette: { dark, white, text }, functions: { rgba } }) => ({
     color: () => {
@@ -135,9 +147,32 @@ function DashboardNavbar({ absolute, light, isMini }) {
         </MDBox>
         {isMini ? null : (
           <MDBox sx={(theme) => navbarRow(theme, { isMini })}>
-            <MDBox pr={1}>
-              <MDInput label="Search here" />
+
+            {/* Industry Filter dropdown */}
+            <MDBox pr={2} sx={{minWidth: 150}}>
+              {dashboardView == false ?
+                (<MDInput label = "Search"/>) 
+                :
+                (<MDInput
+                  select
+                  fullWidth
+                  label="Industry"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: 45, // ⬅️ actual box height
+                    }
+                  }}
+                >
+                  <MenuItem value="All Industries">All Industries</MenuItem>
+                  <MenuItem value="Transportation">Transportation</MenuItem>
+                  <MenuItem value="Agriculture">Agriculture</MenuItem>
+                </MDInput>
+              )
+              }
             </MDBox>
+
             <MDBox color={light ? "white" : "inherit"}>
               <Link to="/authentication/sign-in/basic">
                 <IconButton sx={navbarIconButton} size="small" disableRipple>
