@@ -174,7 +174,7 @@ function DashboardNavbar({ absolute, light, isMini, dashboardView = false }) {
             </MDBox>
 
             <MDBox color={light ? "white" : "inherit"}>
-              <Link to="/authentication/sign-in/basic">
+              {/* <Link to="/authentication/sign-in/basic">
                 <IconButton sx={navbarIconButton} size="small" disableRipple>
                   <Icon sx={iconsStyle}>account_circle</Icon>
                 </IconButton>
@@ -189,7 +189,7 @@ function DashboardNavbar({ absolute, light, isMini, dashboardView = false }) {
                 <Icon sx={iconsStyle} fontSize="medium">
                   {miniSidenav ? "menu_open" : "menu"}
                 </Icon>
-              </IconButton>
+              </IconButton> */}
               <IconButton
                 size="small"
                 disableRipple
@@ -199,7 +199,7 @@ function DashboardNavbar({ absolute, light, isMini, dashboardView = false }) {
               >
                 <Icon sx={iconsStyle}>settings</Icon>
               </IconButton>
-              <IconButton
+              {/* <IconButton
                 size="small"
                 disableRipple
                 color="inherit"
@@ -210,7 +210,7 @@ function DashboardNavbar({ absolute, light, isMini, dashboardView = false }) {
                 onClick={handleOpenMenu}
               >
                 <Icon sx={iconsStyle}>notifications</Icon>
-              </IconButton>
+              </IconButton> */}
               {renderMenu()}
             </MDBox>
           </MDBox>
