@@ -1,6 +1,8 @@
 # this file is backend/app/routes/post_routes.py
+from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Query
 from app.config import db
+from datetime import datetime
 router = APIRouter()
 
 # helper to convert MongoDB ObjectId to string
@@ -38,9 +40,11 @@ async def aggregate_by_industry_and_month():
             {
                 "$addFields": {
                     "event_date_dt": {
-                        "$dateFromString": {
-                            "dateString": "$event_date"
-                        }
+                    "$cond": [
+                        { "$eq": [ { "$type": "$event_date" }, "string" ] },
+                        { "$dateFromString": { "dateString": "$event_date" } },
+                        "$event_date"
+                    ]
                     }
                 }
             },
@@ -104,6 +108,7 @@ async def aggregate_by_industry_and_month():
                         },
                         {
                             "$sort": {
+                                "industry": 1,
                                 "year": 1,
                                 "month": 1
                             }
@@ -114,13 +119,69 @@ async def aggregate_by_industry_and_month():
         ]
 
         cursor = db.europec_maryland_test.aggregate(pipeline)
-        result = await cursor.to_list(None)
+        agg_results  = await cursor.to_list(None)
 
-        # The result of $facet is a single document in an array. We return the document itself.
-        if result:
-            return {"status": 201, "result": result[0]}
+        '''
+            The result is in a {"by_industry": {
+                "industry": "Accommodation and Food Services",
+                "year": 2019,
+                "month": 1,
+                "count": 5
+                },
+                {
+                "industry": "Accommodation and Food Services",
+                "year": 2019,
+                "month": 2,
+                "count": 6
+                },
+            } format --> 
+            so we need to process this to -->
+            {
+            sales: {
+                labels: ["1-19],
+                datasets: { label: "Mobile apps", data: [50, 40, 300, 320, 500, 350, 200, 230, 500] },
+            },
+            tasks: {
+                labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                datasets: { label: "Websites", data: [30, 90, 40, 140, 290, 290, 340, 230, 400] },
+            },
+            }
+        '''
+        if agg_results:
+            industry_data = defaultdict(lambda: {"labels": [], "data": []})
+
+            for i in ["totals_by_group", "by_industry"]:
+                for doc in agg_results[0][i]:
+                    industry = doc.get("industry")
+                    year = doc.get("year")
+                    month = doc.get("month")
+                    count = doc.get("count")
+
+                    # Basic validation
+                    if not industry or not year or not month:
+                        continue
+
+                    # Format label (e.g., "1-19")
+                    label = f"{month}-{str(year)[-2:]}"
+                    industry_data[industry]["labels"].append(label)
+                    industry_data[industry]["data"].append(count)
+            
+            # Build final response
+            response = {
+                industry: {
+                    "labels": values["labels"],
+                    "datasets": {
+                        "label": industry,
+                        "data": values["data"]
+                    }
+                }
+                for industry, values in industry_data.items()
+            }
+
+            return {"status": 201, "result": response}
+
         else:
-            return {"status": 201, "result": {"by_industry": [], "totals_by_month": []}}
+            return {"status": 201, "result": {"by_industry": ["nil"], "totals_by_month": []}}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -185,10 +246,34 @@ async def aggregate_by_industry(
         ]
 
         cursor = db.europec_maryland_test.aggregate(pipeline)
-        result = await cursor.to_list(None)
+        agg_results = await cursor.to_list(None)
 
-        if result:
-            return {"status": 201, "result": result[0]}
+        if agg_results:
+            industry_data = defaultdict(lambda: {"labels": [], "data": []})
+
+            for i in ["totals_by_group", "by_industry"]:
+                for doc in agg_results[0][i]:
+                    industry = doc.get("industry")
+                    group_by = doc.get(group_by_field)
+                    count = doc.get("count")
+
+                    industry_data[industry]["labels"].append(group_by)
+                    industry_data[industry]["data"].append(count)
+            
+            # Build final response
+            response = {
+                industry: {
+                    "labels": values["labels"],
+                    "datasets": {
+                        "label": industry,
+                        "data": values["data"]
+                    }
+                }
+                for industry, values in industry_data.items()
+            }
+
+            return {"status": 201, "result": response}
+        
         else:
             return {"status": 201, "result": []}
 
@@ -259,10 +344,33 @@ async def aggregate_by_industry_AND_actors():
         ]
 
         cursor = db.europec_maryland_test.aggregate(pipeline)
-        result = await cursor.to_list(None)
+        agg_results = await cursor.to_list(None)
 
-        if result:
-            return {"status": 201, "result": result[0]}
+        if agg_results:
+            industry_data = defaultdict(lambda: {"labels": [], "data": []})
+
+            for i in ["totals_by_group", "by_industry"]:
+                for doc in agg_results[0][i]:
+                    industry = doc.get("industry")
+                    actor = doc.get("actor")
+                    count = doc.get("count")
+
+                    industry_data[industry]["labels"].append(actor)
+                    industry_data[industry]["data"].append(count)
+            
+            # Build final response
+            response = {
+                industry: {
+                    "labels": values["labels"],
+                    "datasets": {
+                        "label": industry,
+                        "data": values["data"]
+                    }
+                }
+                for industry, values in industry_data.items()
+            }
+
+            return {"status": 201, "result": response}
         else:
             return {"status": 201, "result": []}
 

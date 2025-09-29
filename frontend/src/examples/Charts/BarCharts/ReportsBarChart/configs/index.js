@@ -4,6 +4,7 @@
 =========================================================
 
 */
+import colors from "assets/theme/base/colors";
 
 function configs(labels, datasets) {
   return {
@@ -16,9 +17,9 @@ function configs(labels, datasets) {
           borderWidth: 0,
           borderRadius: 4,
           borderSkipped: false,
-          backgroundColor: "rgba(255, 255, 255, 0.8)",
+          backgroundColor: colors.warning.main,
           data: datasets.data,
-          maxBarThickness: 6,
+          maxBarThickness: 8,
         },
       ],
     },
@@ -69,7 +70,7 @@ function configs(labels, datasets) {
             color: "rgba(255, 255, 255, .2)",
           },
           ticks: {
-            display: true,
+            display: false,
             color: "#f8f9fa",
             padding: 10,
             font: {

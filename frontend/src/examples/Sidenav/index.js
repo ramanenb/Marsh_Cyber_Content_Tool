@@ -51,7 +51,12 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentSidenav, whiteSidenav, darkMode, sidenavColor } = controller;
   const location = useLocation();
-  const collapseName = location.pathname.replace("/", "");
+  var collapseName = location.pathname.replace("/", "");
+  
+  // ensure that this changes to dashboard for ALL dashboard routes to ensure sidenax is coloured
+  if (collapseName.includes("dashboard")) {
+    collapseName = "dashboard";
+  }
 
   let textColor = "white";
 

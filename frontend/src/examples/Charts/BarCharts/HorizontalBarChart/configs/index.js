@@ -1,18 +1,3 @@
-/**
-=========================================================
-* Material Dashboard 2  React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-// Material Dashboard 2 React base styles
 import typography from "assets/theme/base/typography";
 
 function configs(labels, datasets) {
@@ -28,6 +13,14 @@ function configs(labels, datasets) {
       plugins: {
         legend: {
           display: false,
+        },
+        tooltip: {
+          callbacks: {
+            // Show full label in tooltip
+            title: function (context) {
+              return context[0].label;
+            },
+          },
         },
       },
       scales: {
@@ -50,6 +43,11 @@ function configs(labels, datasets) {
               style: "normal",
               lineHeight: 2,
             },
+            // Truncate y-axis labels to 13 chars
+            callback: function (value) {
+              const label = this.getLabelForValue(value);
+              return label.length > 13 ? label.slice(0, 13) + "…" : label;
+            },
           },
         },
         x: {
@@ -58,12 +56,12 @@ function configs(labels, datasets) {
             display: false,
             drawOnChartArea: false,
             drawTicks: true,
-            color: "#c1c4ce5c"
+            color: "#c1c4ce5c",
           },
           ticks: {
             display: true,
             color: "#b2b9bf",
-            padding: 12
+            padding: 12,
           },
         },
       },

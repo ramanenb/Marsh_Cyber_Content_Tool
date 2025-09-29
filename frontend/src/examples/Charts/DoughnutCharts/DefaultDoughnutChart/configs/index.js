@@ -19,24 +19,7 @@ import colors from "assets/theme/base/colors";
 
 const { gradients, dark } = colors;
 
-function configs(labels, datasets, cutout = 60) {
-  const backgroundColors = [];
-
-  if (datasets.backgroundColors) {
-    datasets.backgroundColors.forEach((color) => {
-      if (gradients[color]) {
-        if (color === "info") {
-          backgroundColors.push(gradients.info.main);
-        } else {
-          backgroundColors.push(gradients[color].state);
-        }
-      } else {
-        backgroundColors.push(dark.main);
-      }
-    });
-  } else {
-    backgroundColors.push(dark.main);
-  }
+function configs(labels, datasets, cutout = 40, backgroundColors = [dark.main]) {
 
   return {
     data: {
@@ -49,7 +32,9 @@ function configs(labels, datasets, cutout = 60) {
           tension: 0.9,
           pointRadius: 2,
           borderWidth: 2,
-          backgroundColor: backgroundColors,
+          backgroundColor: ["#a7630aff", "#da7400ff", "#ff8800ff", "#ffa33aff", "#ffba6bff", 
+            "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff",
+          "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff"],
           fill: false,
           data: datasets.data,
         },

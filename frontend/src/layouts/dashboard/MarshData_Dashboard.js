@@ -1,6 +1,6 @@
 /**
 =========================================================
-* End User Dashboard Page -- data taken from INTERNET
+* End User Dashboard Page -- data taken from MARSH
 =========================================================
 */
 
@@ -15,89 +15,32 @@ import MDTypography from "components/MDTypography";
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/ActualDashboardNavbar";
+import Footer from "examples/Footer";
 import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import DefaultDoughnutChart from "examples/Charts/DoughnutCharts/DefaultDoughnutChart";
 import HorizontalBarChart from "examples/Charts/BarCharts/HorizontalBarChart";
 
+// Data
+import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
+import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+
 // Material Data Table 2 React example components
 import DataTable from "examples/Tables/DataTable";
 import authorsTableData from "layouts/tables/data/authorsTableData";
 
-import { useState, useEffect } from "react";
-
-// process JSON after it has been fetched
-function useFetchData(endpoint_link) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetch(endpoint_link, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((resp) => resp.json())
-      .then((resp) => {
-        const pulled_data = resp?.result || [];
-        setData(pulled_data);
-      })
-      .catch((err) => setError(err))
-      .finally(() => setLoading(false));
-  }, [endpoint_link]);
-
-  return { data, loading, error };
-}
-
-function Dashboard() {
-
-  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
-
-  // ✅ Fetch datasets
-  const {
-    data: incidentsByIndustryYearMonth,
-    loading: loadingYearMonth,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_month");
-
-  // Build Industry dropdown options safely
-  const ALL_IndustryValues = [
-    ...new Set(Object.keys(incidentsByIndustryYearMonth || {})),
-  ];
-  // Function to handle the industry selection change
-  const handleIndustryChange = (event) => {
-    setSelectedIndustry(event);
-  }
-
-  const {
-    data: incidentsByIndustry_EventSubtype,
-    loading: loadingSubtype,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=event_subtype");
-
-  const {
-    data: incidentsByIndustry_Motive,
-    loading: loadingMotive,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=motive");
-
-  const {
-    data: incidentsByIndustry_Actor,
-    loading: loadingActor,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_actors");
-
+function MarshData_Dashboard() {
+  const { sales, tasks } = reportsLineChartData;
   const { columns, rows } = authorsTableData();
-
 
   return (
     <DashboardLayout>
-      {loadingYearMonth ? 
-        (<p> Loading Navbar....</p>) :
-
-        (<DashboardNavbar 
-          dashboardView = {true}
-          Selected_Industry = {selectedIndustry}
-          ALL_IndustryValues = {ALL_IndustryValues}
-          onIndustry_FilterChange = {handleIndustryChange}
-        />)
-      }
+      <DashboardNavbar 
+        dashboardView={true}
+        Selected_Industry={"All Industries"}
+        ALL_IndustryValues={["All Industrues", "Transport"]}
+        onIndustry_FilterChange={(ele) => {ele.console.log(ele)}}
+      />
 
       {/* First row of the Dashboard */}
       <MDBox py={3}>
@@ -109,8 +52,12 @@ function Dashboard() {
                 <ReportsLineChart
                   color="secondary"
                   title="How many incidents occured over time?"
-                  description={<></>}
-                  chart={incidentsByIndustryYearMonth[selectedIndustry] || { labels: [], datasets: [] }}
+                  description={
+                    <>
+                      Marsh data ee
+                    </>
+                  }
+                  chart={sales}
                 />
               </MDBox>
             </Grid>
@@ -119,8 +66,17 @@ function Dashboard() {
               <MDBox mb={3}>
                 <DefaultDoughnutChart
                   color="secondary"
-                  title={"What is the impact of the attacks?"}
-                  chart={incidentsByIndustry_EventSubtype[selectedIndustry] || { labels: [], datasets: [] }}
+                  title="What is the impact of the attacks?"
+                  description="Disruption is the biggest event type at 70%"
+                  chart={{
+                    labels: ["Desktop", "Tablet", "Mobile"],
+                    datasets: { label: "Devices", data: [63, 15, 22] },
+                    backgroundColors: [
+                      'rgba(255, 99, 132, 0.8)',
+                      'rgba(54, 162, 235, 0.8)',
+                      'rgba(255, 206, 86, 0.8)',
+                    ]
+                  }}
                 />
               </MDBox>
             </Grid>
@@ -136,8 +92,9 @@ function Dashboard() {
                 <HorizontalBarChart
                   color="secondary"
                   title="Who are the attackers?"
+                  description="Avg number of attacks is 5 with APT29 is the most active threat actor at 5 attacks"
                   date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_Actor[selectedIndustry] || { labels: [], datasets: [] }}
+                  chart={reportsBarChartData}
                 />                
               </MDBox>
             </Grid>
@@ -147,8 +104,9 @@ function Dashboard() {
                 <ReportsBarChart
                   color="secondary"
                   title="What drives attackers?"
+                  description="Money is the most common motive at 60% (50) followed by Espionage"
                   date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_Motive[selectedIndustry] || { labels: [], datasets: [] }}
+                  chart={reportsBarChartData}
                 />
               </MDBox>
             </Grid>
@@ -194,4 +152,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default MarshData_Dashboard;

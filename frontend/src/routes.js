@@ -36,9 +36,10 @@ Coded by www.creative-tim.com
 */
 
 // Material Dashboard 2 React layouts
-import Dashboard from "layouts/dashboard";
 import Slides from "layouts/slides";
 import Repository from "layouts/repository";
+import Dashboard from "layouts/dashboard/index";
+import MarshData_Dashboard from "layouts/dashboard/MarshData_Dashboard";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
@@ -47,12 +48,19 @@ import Icon from "@mui/material/Icon";
 
 const routes = [
   {
+    name: "Dashboard",
+    key: "dashboard",
+    route: "/dashboard/Internet",
+    component: <Dashboard />,
+  },
+  // Edited in Route for Marsh's Dashboard
+  {
     type: "collapse",
     name: "Dashboard",
     key: "dashboard",
     icon: <Icon fontSize="small">dashboard</Icon>,
-    route: "/dashboard",
-    component: <Dashboard />,
+    route: "/dashboard/Marsh",
+    component: <MarshData_Dashboard />,
   },
   {
     type: "collapse",

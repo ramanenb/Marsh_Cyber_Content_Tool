@@ -30,6 +30,18 @@ import MDTypography from "components/MDTypography";
 function Breadcrumbs({ icon, title, route, light }) {
   const routes = route.slice(0, -1);
 
+  // This is to change the title of the top left hand dashboard navbar
+  // for the Dashboard Views 
+  var below_title = title.replace("-", " ");
+  if (below_title.includes("Internet")) {
+    below_title = "Source: Public Internet Data";
+  }
+  else if (below_title.includes("Marsh")) {
+    below_title = "Source: Propietary Marsh Data";
+  } else {
+    below_title = below_title;
+  }
+
   return (
     <MDBox mr={{ xs: 0, xl: 8 }}>
       <MuiBreadcrumbs
@@ -82,7 +94,7 @@ function Breadcrumbs({ icon, title, route, light }) {
         color={light ? "white" : "dark"}
         noWrap
       >
-        {title.replace("-", " ")}
+        {below_title}
       </MDTypography>
     </MDBox>
   );

@@ -46,6 +46,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 function HorizontalBarChart({ color, title, description, chart }) {
   const visibleCount = 6; // Number of bars to show at once
   const [startIndex, setStartIndex] = useState(0);
+    console.log(chart);
 
   const rawDatasets = chart.datasets
     ? Array.isArray(chart.datasets) ? chart.datasets : [chart.datasets]
@@ -66,7 +67,7 @@ function HorizontalBarChart({ color, title, description, chart }) {
     borderRadius: 4,
     backgroundColor: colors[dataset.color]
       ? colors[dataset.color || "dark"].main
-      : colors.dark.main,
+      : colors.warning.main,
     fill: false,
     maxBarThickness: 35,
   }));
@@ -89,6 +90,8 @@ function HorizontalBarChart({ color, title, description, chart }) {
   return (
     <Card sx={{ height: "100%", width: "100%" }}>
       <MDBox padding="1rem">
+        
+        {/* This part is prely just for the scrolling functionality */}
         {useMemo(
           () => (
             <Box sx={{ position: "relative" }}>
