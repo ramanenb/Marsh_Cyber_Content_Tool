@@ -29,114 +29,118 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 // state
 import { useState, useCallback } from "react";
 function Repo() {
-    const [uploadedFiles, setUploadedFiles] = useState([]);
-    const [dragActive, setDragActive] = useState(false);
-  
-    // Handle dropped files
-    const handleDrop = useCallback((e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-  
-      const files = Array.from(e.dataTransfer.files);
-      setUploadedFiles((prev) => [...prev, ...files]);
-    }, []);
-  
-    const handleDragOver = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(true);
-    };
-  
-    const handleDragLeave = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-    };
-  
-    return (
-      <DashboardLayout>
-        <DashboardNavbar />
-        <MDBox px={3} pt={3}>
-          <MDTypography variant="h6">Upload Proprietary Data (Optional)</MDTypography>
-  
-          <MDBox display="flex" flexDirection="column" gap={2} mt={1}>
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [dragActive, setDragActive] = useState(false);
+
+  // Handle dropped files
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    setUploadedFiles((prev) => [...prev, ...files]);
+  }, []);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  return (
+    <DashboardLayout>
+      <DashboardNavbar />
+      <MDBox px={3} pt={3}>
+        <MDTypography variant="h6">
+          Upload Proprietary Data (Optional)
+        </MDTypography>
+
+        <MDBox display="flex" flexDirection="column" gap={2} mt={1}>
+          <MDTypography variant="body2" color="text">
+            You can upload multiple files (xlsx, PDF, etc.)
+          </MDTypography>
+
+          {/* Drag-and-Drop Zone */}
+          <MDBox
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            border="2px dashed"
+            borderColor={dragActive ? "info.main" : "grey.400"}
+            borderRadius="lg"
+            p={4}
+            textAlign="center"
+            sx={{
+              transition: "border-color 0.2s ease",
+              cursor: "pointer",
+            }}
+          >
             <MDTypography variant="body2" color="text">
-              You can upload multiple files (xlsx, PDF, etc.)
+              {dragActive ? "Drop files here..." : "Drag & Drop files here"}
             </MDTypography>
-  
-            {/* Drag-and-Drop Zone */}
-            <MDBox
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              border="2px dashed"
-              borderColor={dragActive ? "info.main" : "grey.400"}
-              borderRadius="lg"
-              p={4}
-              textAlign="center"
-              sx={{
-                transition: "border-color 0.2s ease",
-                cursor: "pointer",
-              }}
+            <MDButton
+              color="info"
+              variant="outlined"
+              size="small"
+              component="label"
+              sx={{ mt: 1 }}
             >
-              <MDTypography variant="body2" color="text">
-                {dragActive ? "Drop files here..." : "Drag & Drop files here"}
-              </MDTypography>
-              <MDButton
-                color="info"
-                variant="outlined"
-                size="small"
-                component="label"
-                sx={{ mt: 1 }}
-              >
-                Browse Files
-                <input
-                  type="file"
-                  hidden
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files);
-                    setUploadedFiles((prev) => [...prev, ...files]);
-                  }}
-                />
-              </MDButton>
-            </MDBox>
-  
-            {/* Show Uploaded Files */}
-            {uploadedFiles && uploadedFiles.length > 0 && (
-              <MDBox mt={2}>
-                <MDTypography variant="subtitle2">Uploaded Files:</MDTypography>
-                <ul style={{ marginTop: 4, paddingLeft: 20 }}>
-                  {uploadedFiles.map((file, idx) => (
-                    <li
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        maxWidth: 300,
-                      }}
-                    >
-                      <MDTypography variant="body2">{file.name}</MDTypography>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() =>
-                          setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))
-                        }
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </li>
-                  ))}
-                </ul>
-              </MDBox>
-            )}
+              Browse Files
+              <input
+                type="file"
+                hidden
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setUploadedFiles((prev) => [...prev, ...files]);
+                }}
+              />
+            </MDButton>
           </MDBox>
+
+          {/* Show Uploaded Files */}
+          {uploadedFiles && uploadedFiles.length > 0 && (
+            <MDBox mt={2}>
+              <MDTypography variant="subtitle2">Uploaded Files:</MDTypography>
+              <ul style={{ marginTop: 4, paddingLeft: 20 }}>
+                {uploadedFiles.map((file, idx) => (
+                  <li
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      maxWidth: 300,
+                    }}
+                  >
+                    <MDTypography variant="body2">{file.name}</MDTypography>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() =>
+                        setUploadedFiles((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        )
+                      }
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            </MDBox>
+          )}
         </MDBox>
-      </DashboardLayout>
-    );
-  }
-  
-  export default Repo;
+      </MDBox>
+    </DashboardLayout>
+  );
+}
+
+export default Repo;

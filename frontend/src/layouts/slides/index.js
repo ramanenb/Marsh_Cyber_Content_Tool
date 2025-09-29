@@ -39,8 +39,7 @@ import DataTable from "examples/Tables/DataTable";
 // state
 import { useState } from "react";
 
-function Tables() {
-  // 🔹 State for dynamic incidents table
+function Slides() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState("");
@@ -57,7 +56,6 @@ function Tables() {
   ]);
   const [showIncidents, setShowIncidents] = useState(false);
 
-  // Handle fetching incidents (mocked from public/api/incidents.json)
   const handleGetIncidents = async () => {
     try {
       const response = await fetch("/api/incidents.json");
@@ -161,90 +159,73 @@ function Tables() {
     updated.splice(index, 1);
     setSelectedIndustries(updated);
   };
-  // const handleGetIncidents = async () => {
-  //   const payload = {
-  //     industries: selectedIndustries,
-  //     clientContext,
-  //   };
-
-  //   try {
-  //     const response = await fetch("/api/incidents", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(payload),
-  //     });
-
-  //     const data = await response.json();
-  //     // TODO: populate incidents table with `data`
-  //   } catch (error) {
-  //     console.error(error);
-  //   }
-  // };
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox px={3} pt={3}>
-  <MDTypography variant="h6">Upload Proprietary Data (Optional)</MDTypography>
+        <MDTypography variant="h6">
+          Upload Proprietary Data (Optional)
+        </MDTypography>
 
-  <MDBox display="flex" flexDirection="column" gap={2} mt={1}>
-    <MDTypography variant="body2" color="text">
-      You can upload multiple files (xlsx, PDF, etc.)
-    </MDTypography>
+        <MDBox display="flex" flexDirection="column" gap={2} mt={1}>
+          <MDTypography variant="body2" color="text">
+            You can upload multiple files (xlsx, PDF, etc.)
+          </MDTypography>
 
-    <MDButton
-      color="info"
-      variant="outlined"
-      size="small"
-      component="label"
-      sx={{ alignSelf: "flex-start"}} // align left
-    >
-      Browse Files
-      <input
-        type="file"
-        hidden
-        multiple
-        onChange={(e) => {
-          const uploaded = Array.from(e.target.files);
-          setUploadedFiles((prev) => [...prev, ...uploaded]); // append files
-        }}
-      />
-    </MDButton>
-
-    {/* Show Uploaded Files */}
-    {uploadedFiles && uploadedFiles.length > 0 && (
-      <MDBox mt={1}>
-        <MDTypography variant="subtitle2">Uploaded Files:</MDTypography>
-        <ul style={{ marginTop: 4, paddingLeft: 20 }}>
-          {uploadedFiles.map((file, idx) => (
-            <li
-              key={idx}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                maxWidth: 300,
+          <MDButton
+            color="info"
+            variant="outlined"
+            size="small"
+            component="label"
+            sx={{ alignSelf: "flex-start" }}
+          >
+            Browse Files
+            <input
+              type="file"
+              hidden
+              multiple
+              onChange={(e) => {
+                const uploaded = Array.from(e.target.files);
+                setUploadedFiles((prev) => [...prev, ...uploaded]); // append files
               }}
-            >
-              <MDTypography variant="body2">{file.name}</MDTypography>
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => {
-                  setUploadedFiles((prev) =>
-                    prev.filter((_, i) => i !== idx)
-                  );
-                }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </li>
-          ))}
-        </ul>
+            />
+          </MDButton>
+
+          {/* Show Uploaded Files */}
+          {uploadedFiles && uploadedFiles.length > 0 && (
+            <MDBox mt={1}>
+              <MDTypography variant="subtitle2">Uploaded Files:</MDTypography>
+              <ul style={{ marginTop: 4, paddingLeft: 20 }}>
+                {uploadedFiles.map((file, idx) => (
+                  <li
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      maxWidth: 300,
+                    }}
+                  >
+                    <MDTypography variant="body2">{file.name}</MDTypography>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => {
+                        setUploadedFiles((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        );
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            </MDBox>
+          )}
+        </MDBox>
       </MDBox>
-    )}
-  </MDBox>
-</MDBox>
       <MDBox px={3} pt={3}>
         <MDTypography variant="h6">Select Industries</MDTypography>
 
@@ -273,33 +254,36 @@ function Tables() {
         </MDBox>
 
         {/* Add new industry */}
-        <MDBox display="flex" >
+        <MDBox display="flex">
           <MDBox display="flex" gap={1} flexWrap="wrap" mt={1}>
-          <MDInput
-            select
-            label="Add Industry"
-            value={newIndustry}
-            onChange={(e) => setNewIndustry(e.target.value)}
-            sx={{ minWidth: 300 }}
-            InputProps={{
-              style: { minHeight: 50, padding: "12px" },
-            }}
-          >
-            {industryOptions.map((option) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </MDInput>
-          <MDButton color="info" variant="outlined" onClick={handleAddIndustry}>
-            Add
-          </MDButton>
+            <MDInput
+              select
+              label="Add Industry"
+              value={newIndustry}
+              onChange={(e) => setNewIndustry(e.target.value)}
+              sx={{ minWidth: 300 }}
+              InputProps={{
+                style: { minHeight: 50, padding: "12px" },
+              }}
+            >
+              {industryOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </MDInput>
+            <MDButton
+              color="info"
+              variant="outlined"
+              onClick={handleAddIndustry}
+            >
+              Add
+            </MDButton>
+          </MDBox>
         </MDBox>
       </MDBox>
-    </MDBox>
       <MDBox px={3} pt={3}>
-      
-      <MDTypography variant="h6">Select Region</MDTypography>
+        <MDTypography variant="h6">Select Region</MDTypography>
         <MDBox display="flex" gap={1} mt={1}>
           <MDInput
             select
@@ -308,22 +292,22 @@ function Tables() {
             fullWidth
             value={newRegion}
             onChange={(e) => setNewRegion(e.target.value)}
-              sx={{ minWidth: 300 }}
-              InputProps={{
-                style: { minHeight: 50, padding: "12px" },
-              }}
+            sx={{ minWidth: 300 }}
+            InputProps={{
+              style: { minHeight: 50, padding: "12px" },
+            }}
           >
             {regionOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
           </MDInput>
         </MDBox>
-    </MDBox>
-      
-    <MDBox px={3} pt={3}>
-      <MDTypography variant="h6">Provide Client Context</MDTypography>
+      </MDBox>
+
+      <MDBox px={3} pt={3}>
+        <MDTypography variant="h6">Provide Client Context</MDTypography>
         <MDBox display="flex" gap={1} mt={1}>
           <MDInput
             label="Client Context"
@@ -333,7 +317,7 @@ function Tables() {
             onChange={(e) => setClientContext(e.target.value)}
           />
         </MDBox>
-    </MDBox>
+      </MDBox>
       <MDBox px={3} pt={2}>
         <MDButton color="info" variant="outlined" onClick={handleGetIncidents}>
           Get Incidents
@@ -423,10 +407,8 @@ function Tables() {
           </Button>
         </DialogActions>
       </Dialog>
-
-    
     </DashboardLayout>
   );
 }
 
-export default Tables;
+export default Slides;
