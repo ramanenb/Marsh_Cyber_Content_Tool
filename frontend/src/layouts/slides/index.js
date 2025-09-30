@@ -37,7 +37,7 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import DataTable from "examples/Tables/DataTable";
 
 // state
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function Slides() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -93,42 +93,24 @@ function Slides() {
   };
   const [isEditing, setIsEditing] = useState(false);
 
+  const [industryOptions, setIndustryOptions] = useState([]);
   const [selectedIndustries, setSelectedIndustries] = useState([]);
   const [newIndustry, setNewIndustry] = useState("");
-  const [industryOptions, setIndustryOptions] = useState([
-    "Agribusiness",
-    "Automotive",
-    "Aviation & Space",
-    "Cargo & Logistics",
-    "Chemical",
-    "Communications",
-    "Construction",
-    "Education",
-    "Energy & Power",
-    "Entertainment",
-    "Faith & Mission",
-    "Financial Institutions",
-    "Food & Beverage",
-    "Gaming",
-    "Healthcare",
-    "Hospitality",
-    "Infrastructure",
-    "Law Firms",
-    "Life Sciences",
-    "Manufacturing",
-    "Marine",
-    "Media",
-    "Mining",
-    "Public Sector",
-    "Real Estate",
-    "Recycling",
-    "Retail & Wholesale",
-    "Senior Living & Long-Term Care",
-    "Sports",
-    "Technology",
-    "Transportation",
-    "Utilities",
-  ]);
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/getIndustries");
+        const data = await response.json();
+        if (data.industries) {
+          setIndustryOptions(data.industries);
+        }
+      } catch (error) {
+        console.error("Failed to fetch industries:", error);
+      }
+    };
+
+    fetchIndustries();
+  }, []);
 
   const [newRegion, setNewRegion] = useState("");
   const [regionOptions, setRegionOptions] = useState([
