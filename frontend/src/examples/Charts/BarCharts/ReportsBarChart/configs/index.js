@@ -6,7 +6,7 @@
 */
 import colors from "assets/theme/base/colors";
 
-function configs(labels, datasets) {
+function configs(labels, datasets, title) {
   return {
     data: {
       labels,
@@ -17,7 +17,7 @@ function configs(labels, datasets) {
           borderWidth: 0,
           borderRadius: 4,
           borderSkipped: false,
-          backgroundColor: colors.warning.main,
+          backgroundColor: !title.includes("Claims") ? "rgba(255, 162, 39, 0.8)": "rgba(0, 16, 107, 0.8)",
           data: datasets.data,
           maxBarThickness: 8,
         },

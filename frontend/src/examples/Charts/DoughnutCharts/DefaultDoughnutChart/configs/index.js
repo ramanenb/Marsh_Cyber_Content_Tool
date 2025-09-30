@@ -19,7 +19,7 @@ import colors from "assets/theme/base/colors";
 
 const { gradients, dark } = colors;
 
-function configs(labels, datasets, cutout = 40, backgroundColors = [dark.main]) {
+function configs(labels, datasets, cutout = 40, title) {
 
   return {
     data: {
@@ -32,9 +32,13 @@ function configs(labels, datasets, cutout = 40, backgroundColors = [dark.main]) 
           tension: 0.9,
           pointRadius: 2,
           borderWidth: 2,
-          backgroundColor: ["#a7630aff", "#da7400ff", "#ff8800ff", "#ffa33aff", "#ffba6bff", 
+          backgroundColor: (!title.includes("Claims") ? 
+          ["#a7630aff", "#da7400ff", "#ff8800ff", "#ffa33aff", "#ffba6bff", 
             "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff",
-          "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff"],
+          "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff", "#ffd6a7ff"] : 
+          ["#00074bff", "#002770ff", "#001ec9ff", "#3d27ffff", "#c5bfffff", 
+              "#c5bfffff", "#c5bfffff"]
+        ),
           fill: false,
           data: datasets.data,
         },

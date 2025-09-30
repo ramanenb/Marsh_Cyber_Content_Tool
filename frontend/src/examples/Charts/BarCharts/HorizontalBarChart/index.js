@@ -67,7 +67,7 @@ function HorizontalBarChart({ color, title, description, chart }) {
     borderRadius: 4,
     backgroundColor: colors[dataset.color]
       ? colors[dataset.color || "dark"].main
-      : colors.warning.main,
+      : (!title.includes("Claims") ? colors.warning.main : "rgba(0, 16, 107, 0.8)"),
     fill: false,
     maxBarThickness: 35,
   }));

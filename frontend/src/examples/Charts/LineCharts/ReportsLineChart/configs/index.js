@@ -13,7 +13,7 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-function configs(labels, datasets) {
+function configs(labels, datasets, title = "Internet") {
   return {
     data: {
       labels,
@@ -23,8 +23,8 @@ function configs(labels, datasets) {
           tension: 0,
           pointRadius: 5,
           pointBorderColor: "transparent",
-          pointBackgroundColor: "rgba(255, 162, 39, 0.8)",
-          borderColor: "rgba(255, 162, 39, 0.8)",
+          pointBackgroundColor: !title.includes("Claims") ? "rgba(255, 162, 39, 0.8)": "rgba(0, 29, 194, 0.8)",
+          borderColor: !title.includes("Claims") ? "rgba(255, 162, 39, 0.8)": "rgba(31, 59, 214, 0.8)",
           borderWidth: 4,
           backgroundColor: "transparent",
           fill: true,

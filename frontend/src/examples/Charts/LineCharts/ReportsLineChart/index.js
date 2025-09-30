@@ -41,7 +41,7 @@ ChartJS.register(
 );
 
 function ReportsLineChart({ color, title, description, chart }) {
-  const { data, options } = configs(chart.labels || [], chart.datasets || {});
+  const { data, options } = configs(chart.labels || [], chart.datasets || {}, title);
 
   return (
     <Card sx={{ height: "100%" , width: "100%"}}>

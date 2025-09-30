@@ -3,32 +3,108 @@ from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Query
 from app.config import db
 from datetime import datetime
+from bson import ObjectId
 router = APIRouter()
 
-# helper to convert MongoDB ObjectId to string
-def incident_extractor(cyber_incident) -> dict:
-    return {
-        "id": str(cyber_incident["_id"]),
-        "event_date": str(cyber_incident["event_date"]),
-        "affected_country": str(cyber_incident["affected_country"]),
-        "affected_organization": str(cyber_incident["affected_organization"]),
-        "affected_industry": str(cyber_incident["affected_industry"]),
-        "event_type": str(cyber_incident["event_type"]),
-        "event_subtype": str(cyber_incident["event_subtype"]),
-        "motive": str(cyber_incident["motive"]),
-        "description": str(cyber_incident["description"]),
-        "actor": str(cyber_incident["actor"]),
-        "actor_type": str(cyber_incident["actor_type"]),
-        "actor_country": str(cyber_incident["actor_country"])
-    }
-
 # 1. Read the top 9 rows of data from MongoDB
-@router.get("/list_incidents", response_description="List all cyber incidents from MongoDB")
-async def list_incidents():
+from fastapi import APIRouter, HTTPException, Query
+from datetime import datetime
 
-    # we put the name of the database.name of collection here!
-    posts = await db.europec_maryland_test.find().to_list(3)
-    return {"status":201, "result":[incident_extractor(post) for post in posts] }
+router = APIRouter()
+
+@router.get("/list_incidents", response_description="List latest cyber incidents")
+async def get_latest_incidents_by_industry(industry: str = Query(..., description="Industry name or 'All Industries'")):
+    try:
+        if industry == "All Industries":
+            # Fetch latest 30 incidents across all industries
+            pipeline = [
+                {
+                    "$addFields": {
+                        "event_date_dt": {
+                            "$cond": [
+                                { "$eq": [ { "$type": "$event_date" }, "string" ] },
+                                { "$dateFromString": { "dateString": "$event_date" } },
+                                "$event_date"
+                            ]
+                        }
+                    }
+                },
+                { "$sort": { "event_date_dt": -1 } },
+                { "$limit": 30 },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": { "$toString": "$_id" },
+                        "Event_date": {
+                            "$cond": [
+                                { "$eq": [ { "$type": "$event_date_dt" }, "missing" ] },
+                                None,
+                                { "$dateToString": { "format": "%Y-%m-%d", "date": "$event_date_dt" } }
+                            ]
+                        },
+                        "Victim_Origin": "$affected_country",
+                        "Victim": "$affected_organization",
+                        "Industry": "$affected_industry",
+                        "event_type": 1,
+                        "event_subtype": 1,
+                        "Motive": "$motive",
+                        "Description": "$description",
+                        "Attacker": "$actor",
+                        "actor_type": 1,
+                        "Attacker_Origin": "$actor_country",
+                        "Link": "$source_url"
+                    }
+                }
+            ]
+        else:
+            # Fetch top 30 recent incidents for the specific industry
+            pipeline = [
+                { "$match": { "affected_industry": industry } },
+                {
+                    "$addFields": {
+                        "event_date_dt": {
+                            "$cond": [
+                                { "$eq": [ { "$type": "$event_date" }, "string" ] },
+                                { "$dateFromString": { "dateString": "$event_date" } },
+                                "$event_date"
+                            ]
+                        }
+                    }
+                },
+                { "$sort": { "event_date_dt": -1 } },
+                { "$limit": 30 },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": { "$toString": "$_id" },
+                        "Event_date": {
+                            "$cond": [
+                                { "$eq": [ { "$type": "$event_date_dt" }, "missing" ] },
+                                None,
+                                { "$dateToString": { "format": "%Y-%m-%d", "date": "$event_date_dt" } }
+                            ]
+                        },
+                        "Victim_Origin": "$affected_country",
+                        "Victim": "$affected_organization",
+                        "Industry": "$affected_industry",
+                        "event_type": 1,
+                        "event_subtype": 1,
+                        "Motive": "$motive",
+                        "Description": "$description",
+                        "Attacker": "$actor",
+                        "actor_type": 1,
+                        "Attacker_Origin": "$actor_country",
+                        "Link": "$source_url"
+                    }
+                }
+            ]
+
+        cursor = db.europec_maryland_test.aggregate(pipeline)
+        response = await cursor.to_list(None)
+        return {"result": response}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # 2. Aggregates cyber incidents by industry and month, and also provides a total count of incidents for all industries per month.
 @router.get("/aggregate_by_industry_and_month", response_description="Aggregate cyber incidents by industry and month, including total incidents per month.")

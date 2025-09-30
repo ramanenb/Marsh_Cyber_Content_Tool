@@ -31,7 +31,7 @@ import configs from "examples/Charts/DoughnutCharts/DefaultDoughnutChart/configs
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function DefaultDoughnutChart({ color, icon, title, description, chart }) {
-  const { data, options } = configs(chart.labels || [], chart.datasets || {}, chart.cutout, chart.backgroundColors);
+  const { data, options } = configs(chart.labels || [], chart.datasets || {}, chart.cutout, title);
 
   return (
     <Card sx={{ height: "100%"}}>

@@ -15,7 +15,6 @@ import MDTypography from "components/MDTypography";
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/ActualDashboardNavbar";
-import Footer from "examples/Footer";
 import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import DefaultDoughnutChart from "examples/Charts/DoughnutCharts/DefaultDoughnutChart";
@@ -28,6 +27,9 @@ import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
 // Material Data Table 2 React example components
 import DataTable from "examples/Tables/DataTable";
 import authorsTableData from "layouts/tables/data/authorsTableData";
+import StackedBarChart from "examples/Charts/BarCharts/StackedBarChart/StackedBar";
+import RadarChart from "examples/Charts/RadarChart";
+import SankeyChart from "examples/Charts/SankeyChart/Sankey";
 
 function MarshData_Dashboard() {
   const { sales, tasks } = reportsLineChartData;
@@ -51,12 +53,7 @@ function MarshData_Dashboard() {
               <MDBox mb={3}>
                 <ReportsLineChart
                   color="secondary"
-                  title="How many incidents occured over time?"
-                  description={
-                    <>
-                      Marsh data ee
-                    </>
-                  }
+                  title="Claims over time"
                   chart={sales}
                 />
               </MDBox>
@@ -66,16 +63,10 @@ function MarshData_Dashboard() {
               <MDBox mb={3}>
                 <DefaultDoughnutChart
                   color="secondary"
-                  title="What is the impact of the attacks?"
-                  description="Disruption is the biggest event type at 70%"
+                  title="Coverage of Claims"
                   chart={{
                     labels: ["Desktop", "Tablet", "Mobile"],
-                    datasets: { label: "Devices", data: [63, 15, 22] },
-                    backgroundColors: [
-                      'rgba(255, 99, 132, 0.8)',
-                      'rgba(54, 162, 235, 0.8)',
-                      'rgba(255, 206, 86, 0.8)',
-                    ]
+                    datasets: { label: "Devices", data: [63, 15, 22] }
                   }}
                 />
               </MDBox>
@@ -83,16 +74,17 @@ function MarshData_Dashboard() {
 
           </Grid>
         </MDBox>
-
+        
+        {/* Second row of the Dashboard */}
         <MDBox mt={3}>
           <Grid container spacing={3}>
 
             <Grid item xs={12} md={6} lg={8}>
               <MDBox mb={3}>
-                <HorizontalBarChart
+                <ReportsBarChart
                   color="secondary"
-                  title="Who are the attackers?"
-                  description="Avg number of attacks is 5 with APT29 is the most active threat actor at 5 attacks"
+                  title="Change in Claims over Time"
+                  description="Money is the most common motive at 60% (50) followed by Espionage"
                   date="campaign sent 2 days ago"
                   chart={reportsBarChartData}
                 />                
@@ -103,14 +95,127 @@ function MarshData_Dashboard() {
               <MDBox mb={3}>
                 <ReportsBarChart
                   color="secondary"
-                  title="What drives attackers?"
-                  description="Money is the most common motive at 60% (50) followed by Espionage"
+                  title="Estimated Loss from Claims"
+                  description="Money is the most common motive at"
                   date="campaign sent 2 days ago"
                   chart={reportsBarChartData}
                 />
               </MDBox>
             </Grid>
             
+          </Grid>
+        </MDBox>
+
+        {/* Third row of the Dashboard */}
+        <MDBox mt={3}>
+          <Grid container spacing={3}>
+
+            <Grid item xs={12} md={6} lg={8}>
+              <MDBox mb={3}>
+                <HorizontalBarChart
+                  color="secondary"
+                  title="Cause of Claims"
+                  date="campaign sent 2 days ago"
+                  chart={reportsBarChartData}
+                />                
+              </MDBox>
+            </Grid>
+
+            <Grid item xs={12} md={6} lg={4}>
+              <MDBox mb={3}>
+                <StackedBarChart
+                  color="secondary"
+                  title="Affected Countries"
+                  date="campaign sent 2 days ago"
+                  chart={{
+                    labels: ["Countries"],
+                    datasets: [
+                      { label: "Singapore", data: [25], backgroundColor: "navy" },
+                      { label: "USA", data: [35], backgroundColor: "blue" },
+                      { label: "China", data: [40], backgroundColor: "teal" },
+                    ],
+                  }}
+                />  
+              </MDBox>
+            </Grid>
+            
+          </Grid>
+        </MDBox>
+
+        {/* Fourth row of the Dashboard */}
+        <MDBox mt={3}>
+          <Grid container spacing={3}>
+
+            <Grid item xs={12} md={6} lg={4}>
+              <MDBox mb={3}>
+                   <RadarChart 
+                   color="secondary"
+                   title="Types of Claims"
+                   chart= {{
+                      labels: ['FINPRO-Comprehensive Crime',
+                        'FINPRO-Cyber & Privacy Liability',
+                        'FINPRO-Investment Management Liability (IMI)',
+                        'FINPRO-Professional Indemnity (PI)',
+                        'Others',
+                        'Professional/Management Liability',
+                        'Property',
+                        'Public/General Liability'],
+                      datasets: [
+                        {
+                          label: 'No',
+                          data: [10, 2, 4, 8, 6, 8, 7, 9],
+                          borderColor: 'rgba(255, 99, 132, 1)'
+                        },
+                      ],
+                    }}/>       
+              </MDBox>
+            </Grid>
+
+            <Grid item xs={12} md={6} lg={8}>
+              <MDBox mb={3}>
+                <SankeyChart
+                color = "secondary"
+                title = "Result of Claims"
+                chart = {{ data: [
+                  ["From", "To", "Weight"],
+                  ['FINPRO-Comprehensive Crime', "X", 5],
+                  ['FINPRO-Comprehensive Crime', "Y", 7],
+                  ['FINPRO-Investment Management Liability (IMI)', "X", 6],
+                  ['FINPRO-Investment Management Liability (IMI)', "Z", 2],
+                ]}}
+                />
+              </MDBox>
+            </Grid>
+            
+          </Grid>
+        </MDBox>
+
+        {/* Fifth row of the Dashboard */}
+        <MDBox mt={3}>
+          <Grid container spacing={3}>
+
+            <Grid item xs={12} md={6} lg={8}>
+              <MDBox mb={3}>
+                <HorizontalBarChart
+                  color="secondary"
+                  title="Claims Handling Countries"
+                  date="campaign sent 2 days ago"
+                  chart={reportsBarChartData}
+                /> 
+              </MDBox>
+            </Grid>
+
+            <Grid item xs={12} md={6} lg={4}>
+              <MDBox mb={3}>
+                <ReportsBarChart
+                  color="secondary"
+                  title="Time Taken to Report Claims"
+                  date="campaign sent 2 days ago"
+                  chart={reportsBarChartData}
+                />
+              </MDBox>
+            </Grid>
+
           </Grid>
         </MDBox>
         

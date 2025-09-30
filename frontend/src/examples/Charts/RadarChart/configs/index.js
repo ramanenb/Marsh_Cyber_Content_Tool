@@ -1,23 +1,14 @@
-/**
-=========================================================
-* Material Dashboard 2  React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
 function configs(labels, datasets) {
   return {
     data: {
       labels,
-      datasets: [...datasets],
+      datasets: datasets.map((ds) => ({
+        ...ds,
+        fill: true,
+        backgroundColor: ds.backgroundColor || "rgba(255, 99, 132, 0.2)", // soft blue fill
+        borderColor: ds.borderColor || "#003366",
+        pointBackgroundColor: ds.pointBackgroundColor || "rgba(196, 42, 42, 1)"
+      })),
     },
     options: {
       responsive: true,
@@ -25,11 +16,31 @@ function configs(labels, datasets) {
       plugins: {
         legend: {
           display: false,
+          position: "top",
+          labels: {
+            color: "#333",
+          },
         },
       },
-      interaction: {
-        intersect: false,
-        mode: "index",
+      scales: {
+        r: {
+          angleLines: {
+            color: "#e0e0e0",
+          },
+          grid: {
+            color: "#e0e0e0",
+          },
+          pointLabels: {
+            color: "#333",
+            font: { size: 12 },
+            display: false
+          },
+          ticks: {
+            backdropColor: "#fff", // makes hexagon appear white
+            color: "#555",
+            showLabelBackdrop: false,
+          },
+        },
       },
     },
   };

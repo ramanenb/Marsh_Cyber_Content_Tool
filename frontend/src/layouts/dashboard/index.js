@@ -11,6 +11,7 @@ import Card from "@mui/material/Card";
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
+import MDBadge from "components/MDBadge";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -22,7 +23,6 @@ import HorizontalBarChart from "examples/Charts/BarCharts/HorizontalBarChart";
 
 // Material Data Table 2 React example components
 import DataTable from "examples/Tables/DataTable";
-import authorsTableData from "layouts/tables/data/authorsTableData";
 
 import { useState, useEffect } from "react";
 
@@ -43,7 +43,7 @@ function useFetchData(endpoint_link) {
         setData(pulled_data);
       })
       .catch((err) => setError(err))
-      .finally(() => setLoading(false));
+      .finally(() => {console.log("Failed"); setLoading(false);});
   }, [endpoint_link]);
 
   return { data, loading, error };
@@ -83,7 +83,93 @@ function Dashboard() {
     loading: loadingActor,
   } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_actors");
 
-  const { columns, rows } = authorsTableData();
+  /* Code Needed to generate the TABLE at the bottom */
+  const {
+    data: Incidents,
+    loading: loadingIncidents,
+    error: errorIncidents
+  } = useFetchData(`http://127.0.0.1:8000/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}`);
+
+  const columns = [
+      { Header: "Victim", accessor: "Victim", width: "45%", align: "left"},
+      { Header: "Industry", accessor: "Industry", align: "left" },
+      { Header: "Event date", accessor: "Event_date", align: "center" },
+      { Header: "Event type", accessor: "Event_type", align: "center" },
+      { Header: "Attacker", accessor: "Attacker", align: "center" },
+      { Header: "Attacker Origin", accessor: "Attacker_Origin", align: "center" },
+      { Header: "Victim Origin", accessor: "Victim_Origin", align: "center" },
+      { Header: "Motive", accessor: "Motive", align: "center" },  
+      { Header: "Description", accessor: "Description", align: "center" },
+      { Header: "Source", accessor: "Source_Link", align: "center" },                   
+  ];
+
+  const Author = ({ image, name, email }) => (
+      <MDBox display="flex" alignItems="left" lineHeight={1}>
+        {/* <MDAvatar src={image} name={name} size="sm" /> */}
+        <MDBox ml={0} lineHeight={1}>
+          <MDTypography display="block" variant="button" fontWeight="medium">
+            {name}
+          </MDTypography>
+          <MDTypography variant="caption">{email}</MDTypography>
+        </MDBox>
+      </MDBox>
+    );
+
+    // code to create the JSX for each row
+    var rows = Incidents
+  .map(Incident_Info => (
+    {
+      Victim: <Author name={Incident_Info.Victim} />,
+      Industry: <Author name={Incident_Info.Industry} />,
+      Event_date: (
+        <MDTypography variant="h6" color="text" fontWeight="medium">
+          {Incident_Info.Event_date}
+        </MDTypography>
+      ),
+      Event_type: (
+        <MDBox ml={-1}>
+          <MDBadge
+            badgeContent={Incident_Info.event_subtype}
+            color="warning"
+            variant="gradient"
+            size="lg"
+          />
+        </MDBox>
+      ),
+      Attacker: <Author name={Incident_Info.Attacker} email={Incident_Info.actor_type} />,
+      Attacker_Origin: (
+        <MDTypography variant="caption" color="text" fontWeight="medium">
+          {Incident_Info.Attacker_Origin}
+        </MDTypography>
+      ),
+      Victim_Origin: (
+        <MDTypography variant="caption" color="text" fontWeight="medium">
+          {Incident_Info.Victim_Origin}
+        </MDTypography>
+      ),
+      Motive: (
+        <MDTypography variant="h6" color="text" fontWeight="medium">
+          {Incident_Info.Motive}
+        </MDTypography>
+      ),
+      Description: (
+        <MDTypography variant="caption" color="text" fontWeight="medium">
+          {Incident_Info.Description}
+        </MDTypography>
+      ),
+      Source_Link: (
+        <MDTypography
+          component="a"
+          href={Incident_Info.Link}
+          variant="button"
+          color="text"
+          fontWeight="medium"
+        >
+          Link
+        </MDTypography>
+      ),
+    }
+  ));
 
 
   return (
