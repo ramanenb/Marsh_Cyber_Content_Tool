@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.js": "/static/js/main.c04adbf5.js",
+    "main.js": "/static/js/main.871cf4f8.js",
     "static/media/home-decor-3.jpg": "/static/media/home-decor-3.74d13fcbd3c631fc7908.jpg",
     "static/media/home-decor-2.jpg": "/static/media/home-decor-2.b4e5397c9846645ba275.jpg",
     "static/media/home-decor-1.jpg": "/static/media/home-decor-1.05e218fd495ccc65c99d.jpg",
@@ -15,9 +15,9 @@
     "static/media/kal-visuals-square.jpg": "/static/media/kal-visuals-square.3210e28a48ff572ae88b.jpg",
     "static/media/team-4.jpg": "/static/media/team-4.85c82b6e60178804017f.jpg",
     "index.html": "/index.html",
-    "main.c04adbf5.js.map": "/static/js/main.c04adbf5.js.map"
+    "main.871cf4f8.js.map": "/static/js/main.871cf4f8.js.map"
   },
   "entrypoints": [
-    "static/js/main.c04adbf5.js"
+    "static/js/main.871cf4f8.js"
   ]
 }

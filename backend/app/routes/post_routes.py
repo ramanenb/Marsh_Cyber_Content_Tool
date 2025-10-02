@@ -1,7 +1,7 @@
 # this file is backend/app/routes/post_routes.py
 from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Query
-from app.config import db
+from app.config.settings import DB
 from datetime import datetime
 from bson import ObjectId
 router = APIRouter()
@@ -99,7 +99,7 @@ async def get_latest_incidents_by_industry(industry: str = Query(..., descriptio
                 }
             ]
 
-        cursor = db.europec_maryland_test.aggregate(pipeline)
+        cursor = DB.europec_maryland_test.aggregate(pipeline)
         response = await cursor.to_list(None)
         return {"result": response}
 
@@ -194,7 +194,7 @@ async def aggregate_by_industry_and_month():
             }
         ]
 
-        cursor = db.europec_maryland_test.aggregate(pipeline)
+        cursor = DB.europec_maryland_test.aggregate(pipeline)
         agg_results  = await cursor.to_list(None)
 
         '''
@@ -321,7 +321,7 @@ async def aggregate_by_industry(
             }
         ]
 
-        cursor = db.europec_maryland_test.aggregate(pipeline)
+        cursor = DB.europec_maryland_test.aggregate(pipeline)
         agg_results = await cursor.to_list(None)
 
         if agg_results:
@@ -419,7 +419,7 @@ async def aggregate_by_industry_AND_actors():
             }
         ]
 
-        cursor = db.europec_maryland_test.aggregate(pipeline)
+        cursor = DB.europec_maryland_test.aggregate(pipeline)
         agg_results = await cursor.to_list(None)
 
         if agg_results:

@@ -3,3 +3,17 @@ pymongo
 motor
 uvicorn
 python-dotenv
+pydantic
+nest_asyncio
+python-pptx
+aiohttp<3.12
+beautifulsoup4
+
+langgraph
+langchain-openai
+langchain-community
+langchain-mongodb
+langchain-tavily
+langchain-google-genai
+
+arize-phoenix-evals>=0.20.6
