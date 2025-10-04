@@ -14,6 +14,17 @@ from pymongo import MongoClient
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
+# ==================== ARIZE PHOENIX OTEL TRACING ====================
+# Initialize Phoenix OpenTelemetry tracing for LangGraph observability
+from phoenix.otel import register
+
+tracer_provider = register(
+    project_name="langgraph-Marsh",
+    endpoint="https://app.phoenix.arize.com/s/capstonk18/v1/traces",
+    auto_instrument=True
+)
+print("✅ Arize Phoenix OTEL tracing initialized")
+
 # MongoDB settings
 MONGO_URL = os.getenv("MONGO_URL")
 client = AsyncIOMotorClient(MONGO_URL) # Used for non-blocking database operations e.g. dashboard
@@ -34,6 +45,16 @@ INDUSTRIES_COLLECTION = pymongo_client[DB_NAME][INDUSTRIES_COLLECTION_NAME]
 # API keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+
+# AWS S3 Configuration for PowerPoint generation
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+S3_REGION = os.getenv("S3_REGION", "ap-southeast-1")
+TEMPLATE_S3_KEY = os.getenv("TEMPLATE_S3_KEY")
+
+# Logo.dev API for company logos
+LOGO_DEV_TOKEN = os.getenv("LOGO_DEV_TOKEN")
 
 # Model configuration
 llm = ChatOpenAI(model="gpt-4o", temperature=0)

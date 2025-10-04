@@ -8,6 +8,8 @@ nest_asyncio
 python-pptx
 aiohttp<3.12
 beautifulsoup4
+boto3
+requests
 
 langgraph
 langchain-openai
@@ -16,4 +18,6 @@ langchain-mongodb
 langchain-tavily
 langchain-google-genai
 
+arize-phoenix>=5.0.0
 arize-phoenix-evals>=0.20.6
+openinference-instrumentation-langchain>=0.1.0
