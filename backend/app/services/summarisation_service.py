@@ -11,7 +11,7 @@ summarisation_llm = init_chat_model("gpt-4.1-nano-2025-04-14", model_provider="o
 SUMMARISE_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
      "You are a cybersecurity client executive at a prestigious insurance brokerage firm. Your goal is to extract and summarise valuable information from articles to be presented to clients. Summarise the given article into STRICT JSON with keys:\n"
-     "executive_summary (<=500 chars), background (<=600), malicious_activity (<=600), outcomes_and_losses (<=700).\n"
+     "executive_summary (<=700 chars), background (<=800), malicious_activity (<=800), outcomes_and_losses (<=800).\n"
      "Rules: (1) No extra keys. (2) No markdown. (3) No line breaks inside values. (4) If unknown, write 'UNKNOWN'."),
     ("human", "Reference text:\n\n"
      """

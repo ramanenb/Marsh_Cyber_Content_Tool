@@ -6,6 +6,7 @@ configures middleware (like CORS), and attaches routers that define endpoints to
 from fastapi import FastAPI
 from app.routes.post_routes import router as post_router
 from app.routes.query_routes import router as query_router
+from app.routes.ppt_routes import router as ppt_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -29,3 +30,4 @@ app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?grou
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_actors"])
 
 app.include_router(query_router, prefix="/api")
+app.include_router(ppt_router, prefix="/api")
