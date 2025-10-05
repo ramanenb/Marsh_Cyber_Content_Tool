@@ -14,7 +14,7 @@ import MDTypography from "components/MDTypography";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/ActualDashboardNavbar";
+import DashboardNavbar from "examples/Navbars/MarshDashboardNavbar";
 import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import DefaultDoughnutChart from "examples/Charts/DoughnutCharts/DefaultDoughnutChart";
@@ -31,17 +31,127 @@ import StackedBarChart from "examples/Charts/BarCharts/StackedBarChart/StackedBa
 import RadarChart from "examples/Charts/RadarChart";
 import SankeyChart from "examples/Charts/SankeyChart/Sankey";
 
+import { useState, useEffect } from "react";
+
+// process JSON after it has been fetched
+function useFetchData(endpoint_link) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch(endpoint_link, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((resp) => resp.json())
+      .then((resp) => {
+        const pulled_data = resp?.result || resp?.industries || [];
+        setData(pulled_data);
+      })
+      .catch((err) => setError(err))
+      .finally(() => {console.log("Failed"); setLoading(false);});
+  }, [endpoint_link]);
+
+  return { data, loading, error };
+}
+
 function MarshData_Dashboard() {
   const { sales, tasks } = reportsLineChartData;
   const { columns, rows } = authorsTableData();
+
+  /* HANDLE REQUIRED TO POPULATE THE TOPBAR FILTER DROPDOWN */
+  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
+  // Function to handle the industry selection change
+  const handleIndustryChange = (event) => {
+    setSelectedIndustry(event);
+  };
+  const {
+    data: Industries,
+    loading: loadingIndustry,
+  } = useFetchData("http://127.0.0.1:8000/api/getIndustries");
+  // Build Industry dropdown options safely
+  const ALL_IndustriesValues = [
+    "All Industries",
+    ...new Set(Object.values(Industries|| {})),
+  ];
+
+
+  const [selected_ClaimCause, setSelected_ClaimCause] = useState("All Causes");
+  // Function to handle the Causes selection change
+  const handleClaimsCauseChange = (event) => {
+    setSelected_ClaimCause(event);
+  };
+  const {
+    data: ClaimCauses,
+    loading: loadingClaimCauses,
+  } = useFetchData("http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause");
+  // Build Industry dropdown options safely
+  const ALL_ClaimCausesValues = [
+    "All Causes",
+    ...new Set(Object.values(ClaimCauses|| {})),
+  ];
+
+
+  const [selected_ClaimType, setSelected_ClaimType] = useState("All Types");
+  // Function to handle the Types selection change
+  const handleClaimsTypeChange = (event) => {
+    setSelected_ClaimType(event);
+  };
+  const {
+    data: ClaimTypes,
+    loading: loadingClaimType,
+  } = useFetchData("http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim");
+  // Build Industry dropdown options safely
+  const ALL_ClaimTypeValues = [
+    "All Types",
+    ...new Set(Object.values(ClaimTypes|| {})),
+  ];
+
+
+  const [selected_TimePeriod, setSelected_TimePeriod] = useState("5Y");
+  // Function to handle the Types selection change
+  const handleTimePeriodChange = (event) => {
+    setSelected_TimePeriod(event);
+  };
+
+  // ✅ Fetch datasets
+  const {
+    data: incidentsByIndustry_TP_YearMonth,
+    loading: loadingYearMonth,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${0}`);
+  const {
+    data: incidentsByIndustry_TP_Coverage,
+    loading: loadingCoverage,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Coverage?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
+  const {
+    data: incidentsByIndustry_TPYearMonth_CHANGE,
+    loading: loadingYearMonth_Change,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${1}`);
+  const {
+    data: incidentsByIndustry_TPY_LossEstimate,
+    loading: loadingYearMonth_LossEstimate,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Loss_Estimate?industry=${selectedIndustry}&period=${selected_TimePeriod}&bins=${5}`);
 
   return (
     <DashboardLayout>
       <DashboardNavbar 
         dashboardView={true}
-        Selected_Industry={"All Industries"}
-        ALL_IndustryValues={["All Industrues", "Transport"]}
-        onIndustry_FilterChange={(ele) => {ele.console.log(ele)}}
+        Selected_Industry={selectedIndustry}
+        ALL_IndustryValues={ALL_IndustriesValues}
+        onIndustry_FilterChange={handleIndustryChange}
+
+        selected_ClaimCause={selected_ClaimCause}
+        ALL_ClaimsCauseValues={ALL_ClaimCausesValues}
+        onCause_FilterChange={handleClaimsCauseChange}
+
+        selected_ClaimType={selected_ClaimType}
+        ALL_ClaimsTypeValues={ALL_ClaimTypeValues}
+        onType_FilterChange={handleClaimsTypeChange}
+
+        selected_TimePeriod={selected_TimePeriod}
+        ALL_TimePeriodValues={["3M", "6M", "1Y", "3Y", "5Y"]}
+        onTimePeriod_FilterChange={handleTimePeriodChange}
       />
 
       {/* First row of the Dashboard */}
@@ -51,10 +161,10 @@ function MarshData_Dashboard() {
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6} lg={8}>
               <MDBox mb={3}>
-                <ReportsLineChart
+                <ReportsBarChart
                   color="secondary"
                   title="Claims over time"
-                  chart={sales}
+                  chart={incidentsByIndustry_TP_YearMonth?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
                 />
               </MDBox>
             </Grid>
@@ -64,10 +174,7 @@ function MarshData_Dashboard() {
                 <DefaultDoughnutChart
                   color="secondary"
                   title="Coverage of Claims"
-                  chart={{
-                    labels: ["Desktop", "Tablet", "Mobile"],
-                    datasets: { label: "Devices", data: [63, 15, 22] }
-                  }}
+                  chart={incidentsByIndustry_TP_Coverage?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
                 />
               </MDBox>
             </Grid>
@@ -81,12 +188,12 @@ function MarshData_Dashboard() {
 
             <Grid item xs={12} md={6} lg={8}>
               <MDBox mb={3}>
-                <ReportsBarChart
+                <ReportsLineChart
                   color="secondary"
                   title="Change in Claims over Time"
                   description="Money is the most common motive at 60% (50) followed by Espionage"
                   date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
+                  chart={incidentsByIndustry_TPYearMonth_CHANGE?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
                 />                
               </MDBox>
             </Grid>
@@ -95,10 +202,10 @@ function MarshData_Dashboard() {
               <MDBox mb={3}>
                 <ReportsBarChart
                   color="secondary"
-                  title="Estimated Loss from Claims"
-                  description="Money is the most common motive at"
+                  title="Estimated Loss from Claims (USD)"
+                  description="In Thousands"
                   date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
+                  chart={incidentsByIndustry_TPY_LossEstimate?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
                 />
               </MDBox>
             </Grid>

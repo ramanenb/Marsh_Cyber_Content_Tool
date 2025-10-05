@@ -70,7 +70,7 @@ function configs(labels, datasets, title) {
             color: "rgba(255, 255, 255, .2)",
           },
           ticks: {
-            display: false,
+            display: title.includes('Claims') ? true : false,
             color: "#f8f9fa",
             padding: 10,
             font: {
