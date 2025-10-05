@@ -21,6 +21,7 @@ import MDTypography from "components/MDTypography";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
+import LinearProgress from "@mui/material/LinearProgress";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -59,14 +60,14 @@ function Repo() {
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) return;
 
-    setLoading(true);  
+    setLoading(true);
     setSuccess(false);
 
     const formData = new FormData();
-    uploadedFiles.forEach(file => {
+    uploadedFiles.forEach((file) => {
       formData.append("file", file);
     });
-  
+
     try {
       const res = await fetch("http://localhost:8000/api/upload_prop_data/", {
         method: "POST",
@@ -74,7 +75,7 @@ function Repo() {
       });
       const data = await res.json();
       console.log("Upload response:", data);
-      setSuccess(true);     // indicate success
+      setSuccess(true); // indicate success
       setUploadedFiles([]); // clear uploaded files
     } catch (err) {
       console.error("Upload failed:", err);
@@ -83,8 +84,6 @@ function Repo() {
       setLoading(false); // stop loading
     }
   };
-
-
 
   return (
     <DashboardLayout>
@@ -171,17 +170,25 @@ function Repo() {
           )}
         </MDBox>
 
-        <MDBox mt={2}>
-          <MDButton onClick={handleUpload} color="info" disabled={loading}>
-            {loading ? "Uploading..." : "Process & Upload"}
-          </MDButton>
-          {success && (
-            <MDTypography variant="body2" color="success.main" mt={1}>
-              Upload successful!
-            </MDTypography>
-          )}
-        </MDBox>
+        {uploadedFiles.length > 0 && (
+  <MDBox mt={2}>
+    <MDButton onClick={handleUpload} color="info" disabled={loading}>
+      {loading ? "Uploading..." : "Process & Upload"}
+    </MDButton>
 
+    {loading && (
+      <MDBox mt={1}>
+        <LinearProgress color="info" />
+      </MDBox>
+    )}
+
+    {success && (
+      <MDTypography variant="body2" color="success.main" mt={1}>
+        Upload successful!
+      </MDTypography>
+    )}
+  </MDBox>
+)}
       </MDBox>
     </DashboardLayout>
   );

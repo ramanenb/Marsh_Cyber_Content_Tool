@@ -2,15 +2,6 @@
 =========================================================
 * Material Dashboard 2 React - v2.2.0
 =========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
 // @mui material components
@@ -21,14 +12,16 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
+import MenuItem from "@mui/material/MenuItem";
+import IconButton from "@mui/material/IconButton";
+import DeleteIcon from "@mui/icons-material/Delete";
+import Checkbox from "@mui/material/Checkbox";
+import CircularProgress from "@mui/material/CircularProgress";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
-import MenuItem from "@mui/material/MenuItem";
-import IconButton from "@mui/material/IconButton";
-import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
 
 // Material Dashboard 2 React example components
@@ -36,61 +29,51 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import DataTable from "examples/Tables/DataTable";
 
-// state
-import { useState, useEffect } from "react";
+// state/hooks
+import { useState, useEffect, useMemo } from "react";
 
 function Slides() {
+  const [loadingIncidents, setLoadingIncidents] = useState(false);
+  const [loadingExport, setLoadingExport] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState("");
-  const [incidentRows, setIncidentRows] = useState([]);
+  const [incidentsData, setIncidentsData] = useState([]);
   const [incidentColumns] = useState([
-    { Header: "company", accessor: "company", width: "25%", align: "left" },
-    { Header: "details", accessor: "details", align: "left" },
+    { Header: "", accessor: "select", width: "5%", align: "center" },
+    { Header: "company", accessor: "company", width: "20%", align: "left" },
+    {
+      Header: "executive summary",
+      accessor: "executive_summary",
+      align: "left",
+    },
     {
       Header: "hallucination likelihood",
       accessor: "hallucinationLikelihood",
-      align: "left",
+      align: "center",
     },
     { Header: "action", accessor: "action", align: "center" },
   ]);
   const [showIncidents, setShowIncidents] = useState(false);
 
+  // store indices of selected incidents
+  const [selectedIncidents, setSelectedIncidents] = useState([]);
+
   const handleGetIncidents = async () => {
+    setLoadingIncidents(true);
     try {
       const response = await fetch("/api/incidents.json");
       const data = await response.json();
-
-      const newRows = data.map((item) => {
-        // take first 5 words for the snippet
-        const snippet = item.details.split(" ").slice(0, 5).join(" ") + "...";
-
-        return {
-          company: item.company,
-          hallucinationLikelihood: item.hallucinationLikelihood,
-          details: snippet, // snippet column
-          action: (
-            <MDButton
-              variant="outlined"
-              color="info"
-              size="small"
-              onClick={() => {
-                setSelectedFunction(item.details); // full text
-                setOpenDialog(true);
-              }}
-            >
-              View
-            </MDButton>
-          ),
-        };
-      });
-
-      setIncidentRows(newRows);
+      setIncidentsData(data);
       setShowIncidents(true);
+      setSelectedIncidents([]);
     } catch (error) {
       console.error("Failed to fetch incidents:", error);
+    } finally {
+      setLoadingIncidents(false);
     }
   };
+
   const [isEditing, setIsEditing] = useState(false);
 
   const [industryOptions, setIndustryOptions] = useState([]);
@@ -101,19 +84,16 @@ function Slides() {
       try {
         const response = await fetch("http://localhost:8000/api/getIndustries");
         const data = await response.json();
-        if (data.industries) {
-          setIndustryOptions(data.industries);
-        }
+        if (data.industries) setIndustryOptions(data.industries);
       } catch (error) {
         console.error("Failed to fetch industries:", error);
       }
     };
-
     fetchIndustries();
   }, []);
 
   const [newRegion, setNewRegion] = useState("");
-  const [regionOptions, setRegionOptions] = useState([
+  const [regionOptions] = useState([
     "Hong Kong SAR",
     "India",
     "Indonesia",
@@ -142,6 +122,59 @@ function Slides() {
     setSelectedIndustries(updated);
   };
 
+  const tableRows = useMemo(() => {
+    return incidentsData.map((item, index) => ({
+      select: (
+        <Checkbox
+          size="small"
+          checked={selectedIncidents.includes(index)}
+          onChange={(e) => {
+            setSelectedIncidents((prev) =>
+              e.target.checked
+                ? [...prev, index]
+                : prev.filter((i) => i !== index)
+            );
+          }}
+        />
+      ),
+      company: item.affected_organization || "N/A",
+      executive_summary: item.executive_summary || "—",
+      hallucinationLikelihood: item.hallucinationLikelihood || "unknown",
+      action: (
+        <MDButton
+          variant="outlined"
+          color="info"
+          size="small"
+          onClick={() => {
+            setSelectedFunction({
+              executive_summary: item.executive_summary || "",
+              background: item.background || "",
+              malicious_activity: item.malicious_activity || "",
+              outcomes_and_losses: item.outcomes_and_losses || "",
+              source_url: item.source_url || "",
+            });
+            setIsEditing(false);
+            setOpenDialog(true);
+          }}
+        >
+          View
+        </MDButton>
+      ),
+    }));
+  }, [incidentsData, selectedIncidents]);
+
+  const handleExportPowerPoint = async () => {
+    setLoadingExport(true);
+    try {
+      // Simulate export logic
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("PowerPoint export triggered!");
+    } catch (error) {
+      console.error("Export failed:", error);
+    } finally {
+      setLoadingExport(false);
+    }
+  };
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -169,12 +202,11 @@ function Slides() {
               multiple
               onChange={(e) => {
                 const uploaded = Array.from(e.target.files);
-                setUploadedFiles((prev) => [...prev, ...uploaded]); // append files
+                setUploadedFiles((prev) => [...prev, ...uploaded]);
               }}
             />
           </MDButton>
 
-          {/* Show Uploaded Files */}
           {uploadedFiles && uploadedFiles.length > 0 && (
             <MDBox mt={1}>
               <MDTypography variant="subtitle2">Uploaded Files:</MDTypography>
@@ -193,11 +225,11 @@ function Slides() {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => {
+                      onClick={() =>
                         setUploadedFiles((prev) =>
                           prev.filter((_, i) => i !== idx)
-                        );
-                      }}
+                        )
+                      }
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -208,11 +240,11 @@ function Slides() {
           )}
         </MDBox>
       </MDBox>
+
       <MDBox px={3} pt={3}>
         <MDTypography variant="h6">Select Industries</MDTypography>
 
-        {/* Selected industries */}
-        <MDBox display="flex">
+        <MDBox display="flex" gap={1} flexWrap="wrap">
           {selectedIndustries.map((industry, index) => (
             <MDBox
               key={index}
@@ -235,35 +267,29 @@ function Slides() {
           ))}
         </MDBox>
 
-        {/* Add new industry */}
-        <MDBox display="flex">
-          <MDBox display="flex" gap={1} flexWrap="wrap" mt={1}>
-            <MDInput
-              select
-              label="Add Industry"
-              value={newIndustry}
-              onChange={(e) => setNewIndustry(e.target.value)}
-              sx={{ minWidth: 300 }}
-              InputProps={{
-                style: { minHeight: 50, padding: "12px" },
-              }}
-            >
-              {industryOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </MDInput>
-            <MDButton
-              color="info"
-              variant="outlined"
-              onClick={handleAddIndustry}
-            >
-              Add
-            </MDButton>
-          </MDBox>
+        <MDBox display="flex" mt={1} gap={1} alignItems="center">
+          <MDInput
+            select
+            label="Add Industry"
+            value={newIndustry}
+            onChange={(e) => setNewIndustry(e.target.value)}
+            sx={{ minWidth: 300 }}
+            InputProps={{
+              style: { minHeight: 50, padding: "12px" },
+            }}
+          >
+            {industryOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </MDInput>
+          <MDButton color="info" variant="outlined" onClick={handleAddIndustry}>
+            Add
+          </MDButton>
         </MDBox>
       </MDBox>
+
       <MDBox px={3} pt={3}>
         <MDTypography variant="h6">Select Region</MDTypography>
         <MDBox display="flex" gap={1} mt={1}>
@@ -300,11 +326,20 @@ function Slides() {
           />
         </MDBox>
       </MDBox>
-      <MDBox px={3} pt={2}>
-        <MDButton color="info" variant="outlined" onClick={handleGetIncidents}>
-          Get Incidents
+
+      <MDBox px={3} pt={3}>
+        <MDButton
+          color="info"
+          variant="outlined"
+          onClick={handleGetIncidents}
+          disabled={loadingIncidents}
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          {loadingIncidents && <CircularProgress size={18} color="inherit" />}
+          {loadingIncidents ? "Loading..." : "Get Incidents"}
         </MDButton>
       </MDBox>
+
       {showIncidents && (
         <MDBox pt={6} pb={3}>
           <Grid container spacing={6}>
@@ -326,7 +361,7 @@ function Slides() {
                 </MDBox>
                 <MDBox pt={3}>
                   <DataTable
-                    table={{ columns: incidentColumns, rows: incidentRows }}
+                    table={{ columns: incidentColumns, rows: tableRows }}
                     isSorted={false}
                     entriesPerPage={false}
                     showTotalEntries={false}
@@ -336,9 +371,18 @@ function Slides() {
               </Card>
             </Grid>
           </Grid>
-          <MDBox px={3} pt={2}>
-            <MDButton color="info" variant="outlined">
-              Export to Powerpoint
+          <MDBox pt={3}>
+            <MDButton
+              color="info"
+              variant="outlined"
+              onClick={handleExportPowerPoint}
+              disabled={loadingExport}
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
+              {loadingExport && (
+                <CircularProgress size={18} color="inherit" thickness={5} />
+              )}
+              {loadingExport ? "Exporting..." : "Export to PowerPoint"}
             </MDButton>
           </MDBox>
         </MDBox>
@@ -352,26 +396,67 @@ function Slides() {
       >
         <DialogTitle>Incident Details</DialogTitle>
         <DialogContent dividers>
-          {isEditing ? (
-            <MDInput
-              multiline
-              fullWidth
-              minRows={8}
-              value={selectedFunction}
-              onChange={(e) => setSelectedFunction(e.target.value)}
-            />
-          ) : (
-            <MDTypography variant="body2" whiteSpace="pre-line">
-              {selectedFunction}
-            </MDTypography>
+          {[
+            "executive_summary",
+            "background",
+            "malicious_activity",
+            "outcomes_and_losses",
+          ].map((field) => (
+            <MDBox key={field} mb={2}>
+              <MDTypography variant="subtitle2" color="text">
+                {field
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+              </MDTypography>
+              {isEditing ? (
+                <MDInput
+                  multiline
+                  fullWidth
+                  minRows={4}
+                  value={selectedFunction[field]}
+                  onChange={(e) =>
+                    setSelectedFunction((prev) => ({
+                      ...prev,
+                      [field]: e.target.value,
+                    }))
+                  }
+                  sx={{ mt: 0.5 }}
+                />
+              ) : (
+                <MDTypography
+                  variant="body2"
+                  whiteSpace="pre-line"
+                  sx={{ mt: 0.5 }}
+                >
+                  {selectedFunction[field] || "—"}
+                </MDTypography>
+              )}
+            </MDBox>
+          ))}
+
+          {selectedFunction.source_url && (
+            <MDBox mt={2}>
+              <MDTypography variant="subtitle2" color="text">
+                Source URL
+              </MDTypography>
+              <a
+                href={selectedFunction.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#1a73e8" }}
+              >
+                {selectedFunction.source_url}
+              </a>
+            </MDBox>
           )}
         </DialogContent>
+
         <DialogActions>
           {isEditing ? (
             <MDButton
               color="success"
               variant="gradient"
-              onClick={() => setIsEditing(false)} // save changes
+              onClick={() => setIsEditing(false)}
             >
               Save
             </MDButton>
