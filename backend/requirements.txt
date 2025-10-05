@@ -21,3 +21,6 @@ langchain-google-genai
 arize-phoenix>=5.0.0
 arize-phoenix-evals>=0.20.6
 openinference-instrumentation-langchain>=0.1.0
+
+pycountry_convert
+openpyxl
