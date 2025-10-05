@@ -31,6 +31,8 @@ import { useState, useCallback } from "react";
 function Repo() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // Handle dropped files
   const handleDrop = useCallback((e) => {
@@ -53,6 +55,36 @@ function Repo() {
     e.stopPropagation();
     setDragActive(false);
   };
+
+  const handleUpload = async () => {
+    if (uploadedFiles.length === 0) return;
+
+    setLoading(true);  
+    setSuccess(false);
+
+    const formData = new FormData();
+    uploadedFiles.forEach(file => {
+      formData.append("file", file);
+    });
+  
+    try {
+      const res = await fetch("http://localhost:8000/api/upload_prop_data/", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      console.log("Upload response:", data);
+      setSuccess(true);     // indicate success
+      setUploadedFiles([]); // clear uploaded files
+    } catch (err) {
+      console.error("Upload failed:", err);
+      setSuccess(false);
+    } finally {
+      setLoading(false); // stop loading
+    }
+  };
+
+
 
   return (
     <DashboardLayout>
@@ -138,6 +170,18 @@ function Repo() {
             </MDBox>
           )}
         </MDBox>
+
+        <MDBox mt={2}>
+          <MDButton onClick={handleUpload} color="info" disabled={loading}>
+            {loading ? "Uploading..." : "Process & Upload"}
+          </MDButton>
+          {success && (
+            <MDTypography variant="body2" color="success.main" mt={1}>
+              Upload successful!
+            </MDTypography>
+          )}
+        </MDBox>
+
       </MDBox>
     </DashboardLayout>
   );

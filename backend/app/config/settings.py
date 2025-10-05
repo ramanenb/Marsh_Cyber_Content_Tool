@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_mongodb import MongoDBAtlasVectorSearch
 from pymongo import MongoClient
+from openai import OpenAI
 
 ## Load environment variables from /backend/.env
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -59,6 +60,8 @@ LOGO_DEV_TOKEN = os.getenv("LOGO_DEV_TOKEN")
 # Model configuration
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+embedding_model = "text-embedding-3-small"
+openai_client = OpenAI()
 
 # Vector stores
 PUBLIC_VECTOR_STORE = MongoDBAtlasVectorSearch(
