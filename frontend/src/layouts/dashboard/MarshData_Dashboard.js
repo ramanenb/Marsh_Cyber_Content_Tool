@@ -132,6 +132,23 @@ function MarshData_Dashboard() {
     data: incidentsByIndustry_TPY_LossEstimate,
     loading: loadingYearMonth_LossEstimate,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Loss_Estimate?industry=${selectedIndustry}&period=${selected_TimePeriod}&bins=${5}`);
+  const {
+    data: incidentsByIndustry_TPY_Cause,
+    loading: loadingYearMonth_Cause,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause`);
+  const {
+    data: incidentsByIndustry_TPY_Types,
+    loading: loadingYearMonth_Types,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
+  const {
+    data: incidentsByIndustry_TPY_Countries,
+    loading: loadingYearMonsth_TPY_Countries
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_AffectedCountries?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
+const {
+    data: incidentsByIndustry_TPY_Sankey,
+    loading: loadingYearMonsth_TPY_Sankey
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Sankey?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
+
 
   return (
     <DashboardLayout>
@@ -223,7 +240,7 @@ function MarshData_Dashboard() {
                   color="secondary"
                   title="Cause of Claims"
                   date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
+                  chart={incidentsByIndustry_TPY_Cause?.["Output"]?.[selected_ClaimType] || { labels: [], datasets: [] }}
                 />                
               </MDBox>
             </Grid>
@@ -234,14 +251,14 @@ function MarshData_Dashboard() {
                   color="secondary"
                   title="Affected Countries"
                   date="campaign sent 2 days ago"
-                  chart={{
+                  chart={
+                    incidentsByIndustry_TPY_Countries?.[selected_ClaimType]?.[selected_ClaimCause] || { 
                     labels: ["Countries"],
                     datasets: [
-                      { label: "Singapore", data: [25], backgroundColor: "navy" },
-                      { label: "USA", data: [35], backgroundColor: "blue" },
-                      { label: "China", data: [40], backgroundColor: "teal" },
+                      { label: "No Data", data: [25], backgroundColor: "navy" }
                     ],
-                  }}
+                   }
+                  }
                 />  
               </MDBox>
             </Grid>
@@ -259,18 +276,11 @@ function MarshData_Dashboard() {
                    color="secondary"
                    title="Types of Claims"
                    chart= {{
-                      labels: ['FINPRO-Comprehensive Crime',
-                        'FINPRO-Cyber & Privacy Liability',
-                        'FINPRO-Investment Management Liability (IMI)',
-                        'FINPRO-Professional Indemnity (PI)',
-                        'Others',
-                        'Professional/Management Liability',
-                        'Property',
-                        'Public/General Liability'],
+                      labels: incidentsByIndustry_TPY_Types?.["Output"]?.[selected_ClaimCause]?.["labels"],
                       datasets: [
                         {
-                          label: 'No',
-                          data: [10, 2, 4, 8, 6, 8, 7, 9],
+                          label: "No",
+                          data: incidentsByIndustry_TPY_Types?.["Output"]?.[selected_ClaimCause]?.["datasets"]?.["data"],
                           borderColor: 'rgba(255, 99, 132, 1)'
                         },
                       ],
@@ -283,13 +293,11 @@ function MarshData_Dashboard() {
                 <SankeyChart
                 color = "secondary"
                 title = "Result of Claims"
-                chart = {{ data: [
-                  ["From", "To", "Weight"],
-                  ['FINPRO-Comprehensive Crime', "X", 5],
-                  ['FINPRO-Comprehensive Crime', "Y", 7],
-                  ['FINPRO-Investment Management Liability (IMI)', "X", 6],
-                  ['FINPRO-Investment Management Liability (IMI)', "Z", 2],
-                ]}}
+                chart = {{ data: [ 
+                           ["From","To","Weight"],
+                           ...(incidentsByIndustry_TPY_Sankey?.[selected_ClaimType]?.[selected_ClaimCause]?.["data"] || []) 
+                           ] 
+                        }}
                 />
               </MDBox>
             </Grid>
