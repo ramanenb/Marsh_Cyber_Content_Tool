@@ -8,6 +8,10 @@ from itertools import pairwise
 from bson import ObjectId
 router = APIRouter()
 from dateutil.relativedelta import relativedelta
+import random
+import math
+
+
 
 @router.get("/unique_valueFOR", response_description="Find unique values for cause or claim type col", tags=["find_unqiue_ValueInCol"])
 async def find_unique(
@@ -462,4 +466,386 @@ async def aggregate_by_Loss_Estimate(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 5. Generate aggregation by Claim Cause OR Claim Type
+@router.get("/aggregateby_CauseOrType", response_description="Aggregate cyber incidents by ClaimType or Cause")
+async def aggregate_by_CauseOrType(
+    industry: str = Query(default="All Industries"),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year"),
+    group_by_field: str = Query(default="Cause", enum=["Cause", "Type of Claim"])
+):
+    try:
+        # 1️⃣ Parse time period
+        now = datetime.now(timezone.utc)
+        if period.endswith("M"):
+            start_date = now - relativedelta(months=int(period[:-1]))
+        elif period.endswith("Y"):
+            start_date = now - relativedelta(years=int(period[:-1]))
+        else:
+            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+
+        # 2️⃣ Determine fields
+        if group_by_field == "Cause":
+            secondary_field = "Type of Claim"
+            all_key = "All Types"
+        else:
+            secondary_field = "Cause"
+            all_key = "All Causes"
+
+        # 3️⃣ Build aggregation pipeline
+        pipeline = [
+            {
+                "$match": {
+                    "Incident Date": {"$gte": start_date},
+                    **({"Industry": industry} if industry != "All Industries" else {})
+                }
+            },
+            {
+                "$facet": {
+                    # Group by secondary field first, then group_by_field
+                    "grouped": [
+                        {
+                            "$group": {
+                                "_id": {
+                                    secondary_field: f"${secondary_field}",
+                                    group_by_field: f"${group_by_field}"
+                                },
+                                "count": {"$sum": 1}
+                            }
+                        },
+                        {
+                            "$group": {
+                                "_id": f"$_id.{secondary_field}",
+                                "sub_groups": {
+                                    "$push": {
+                                        group_by_field: f"$_id.{group_by_field}",
+                                        "count": "$count"
+                                    }
+                                },
+                                "total": {"$sum": "$count"}
+                            }
+                        },
+                        {"$sort": {"total": -1}}
+                    ],
+                    # Overall totals (All Causes / All Types)
+                    all_key: [
+                        {
+                            "$group": {
+                                "_id": f"${group_by_field}",
+                                "count": {"$sum": 1}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                group_by_field: "$_id",
+                                "count": 1
+                            }
+                        },
+                        {"$sort": {"count": -1}}
+                    ]
+                }
+            }
+        ]
+
+        # 4️⃣ Run aggregation
+        cursor = DB.marsh_proprietary_data.aggregate(pipeline)
+        agg_results = await cursor.to_list(None)
+        if not agg_results or not agg_results[0]:
+            return {"status": 200, "result": {"Output": {}}}
+
+        result = agg_results[0]
+
+        # 5️⃣ Format response
+        response = {"Output": {}}
+
+        # (a) Add grouped data by secondary_field
+        grouped_output = {}
+        for entry in result["grouped"]:
+            sec_label = entry["_id"]
+            labels = [x[group_by_field] for x in entry["sub_groups"]]
+            data = [x["count"] for x in entry["sub_groups"]]
+            grouped_output[sec_label] = {
+                "labels": labels,
+                "datasets": {
+                    "label": group_by_field,
+                    "data": data
+                }
+            }
+
+        # (b) Add overall totals
+        all_labels = [doc[group_by_field] for doc in result[all_key]]
+        all_data = [doc["count"] for doc in result[all_key]]
+        grouped_output[all_key] = {
+            "labels": all_labels,
+            "datasets": {
+                "label": group_by_field,
+                "data": all_data
+            }
+        }
+
+        response["Output"] = grouped_output
+
+        return {"status": 201, "result": response}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 6. Aggregate by Affected Countries
+@router.get("/aggregateby_AffectedCountries", response_description="Aggregate cyber incidents by Affected Industries.")
+async def aggregate_by_AffectedCountries(
+    industry: str = Query(default="All Industries"),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")
+):
+    try:
+        # 1️⃣ Parse time period (e.g. '3M', '1Y')
+        now = datetime.now(timezone.utc)
+        if period.endswith("M"):
+            months = int(period[:-1])
+            start_date = now - relativedelta(months=months)
+        elif period.endswith("Y"):
+            years = int(period[:-1])
+            start_date = now - relativedelta(years=years)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+
+        # 2️⃣ Build MongoDB pipeline
+        pipeline = [
+            # Filter by selected industry (if not "All Industries") and date range
+                { "$match": {
+                    "$and": [
+                        {"Incident Date": {"$gte": start_date}},
+                        {} if industry == "All Industries" else {"Industry": industry}
+                    ]
+                }},
+                # Group by Type of Claim, Cause, Affected Countries
+                { "$group": {
+                        "_id": {
+                            "type_of_claim": "$Type of Claim",
+                            "cause": "$Cause",
+                            "coverage": "$Country (Set ID)"
+                        },
+                        "count": {"$sum": 1}
+                }},
+                # Format output
+                { "$project": {
+                        "_id": 0,
+                        "type_of_claim": "$_id.type_of_claim",
+                        "cause": "$_id.cause",
+                        "Affected_Country": "$_id.coverage",
+                        "count": 1
+                }},
+                {"$sort": {"count": -1}}
+        ]
+
+        # 3️⃣ Run aggregation
+        cursor = DB.marsh_proprietary_data.aggregate(pipeline)
+        results = await cursor.to_list(None)
+
+        if not results:
+            return {"status": 200, "message": "No data found for selected filters.", "result": []}
+
+        # 4️⃣ Post-process results into frontend format
+        grouped_data = defaultdict(lambda: defaultdict(lambda: {"labels": [], "data": []}))
+        # structure: grouped_data[type_of_claim][cause] = {"labels": [], "data": []}
+
+        for doc in results:
+            toc = doc.get("type_of_claim") or "Unknown"
+            cause = doc.get("cause") or "Unknown"
+            label = doc.get("Affected_Country") or "Unknown"
+
+            toc = str(toc)
+            cause = str(cause)
+            label = str(label)
+
+            grouped_data[toc][cause]["labels"].append(label)
+            grouped_data[toc][cause]["data"].append(doc["count"])
+
+        # add in data for ALL Causes for each Type of Claim
+        for toc, causes in grouped_data.items():
+            all_cause_totals = defaultdict(int)
+            
+            for cause, values in causes.items():
+                labels_list = values["labels"]
+                data_list = values["data"]
+                for label, count in zip(labels_list, data_list):
+                    all_cause_totals[label] += count  
+            
+            # sort keys
+            sorted_keys = sorted(all_cause_totals.items(), key= lambda item: item[1], reverse=True)
+            sorted_dict = dict(sorted_keys)
+            
+            grouped_data[toc]["All Causes"] = {
+                "labels": list(sorted_dict.keys()),
+                "data": list(sorted_dict.values())
+            }
+        
+        # Repeat the above 2 BUT for ALL CLAIM TYPES
+        all_types_data  = defaultdict(lambda: defaultdict(int))
+        for toc, causes in grouped_data.items():
+            for cause, values in causes.items():
+                for label, count in zip(values["labels"], values["data"]):
+                    all_types_data[cause][label] += count
+
+        # Step 4: Build into grouped_data["All Types"]
+        for cause, label_counts in all_types_data.items():
+            sorted_keys = sorted(label_counts.items(), key= lambda item: item[1], reverse=True)
+            sorted_dict = dict(sorted_keys)
+            grouped_data["All Types"][cause] = {
+                "labels": list(sorted_dict.keys()),
+                "data": list(sorted_dict.values())
+            }
+        
+        # Final response structure - ONLY THING that had to be changed compared to the Claim_Coverage ONE
+        response = {
+            toc: {
+                cause: {
+                    "labels": ["Countries"],
+                    "datasets": [
+                        {"label": x, "data": [y]} for x,y in zip(val["labels"], val["data"])
+                    ]
+                }
+                for cause, val in causes.items()
+            }
+            for toc, causes in grouped_data.items()
+        }
+
+        return {
+            "status": 200,
+            "filters": {"industry": industry, "period": period},
+            "result": response
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# 7. Aggregates cyber incident for Sankey Chart showing claim type & result
+import math
+import json
+from fastapi.responses import JSONResponse
+
+@router.get("/aggregateby_Claim_Sankey", response_description="Aggregate cyber incidents by Type of Claim & Result of Claim.")
+async def aggregate_by_Sankey(
+    industry: str = Query(default="All Industries"),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' or '1Y'")
+):
+    try:
+        # 1️⃣ Parse time period
+        now = datetime.now(timezone.utc)
+        if period.endswith("M"):
+            months = int(period[:-1])
+            start_date = now - relativedelta(months=months)
+        elif period.endswith("Y"):
+            years = int(period[:-1])
+            start_date = now - relativedelta(years=years)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+
+        # 2️⃣ MongoDB pipeline
+        pipeline = [
+            {
+                "$match": {
+                    "$and": [
+                        {"Incident Date": {"$gte": start_date}},
+                        {} if industry == "All Industries" else {"Industry": industry}
+                    ]
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "type_of_claim": "$Type of Claim",
+                        "cause": "$Cause",
+                        "claim_result": "$Claim Result"
+                    },
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "type_of_claim": "$_id.type_of_claim",
+                    "cause": "$_id.cause",
+                    "from": "$_id.type_of_claim",
+                    "to": "$_id.claim_result",
+                    "count": 1
+                }
+            },
+            {"$sort": {"count": -1}}
+        ]
+
+        # 3️⃣ Run aggregation
+        cursor = DB.marsh_proprietary_data.aggregate(pipeline)
+        results = await cursor.to_list(length=None)
+
+        if not results:
+            return JSONResponse(
+                content={"status": 200, "message": "No data found for selected filters.", "result": []},
+                media_type="application/json"
+            )
+
+        grouped_data = {}
+
+        for doc in results:
+            toc = str(doc.get("type_of_claim") or "Unknown")
+            cause = str(doc.get("cause") or "Unknown")
+            from_label = str(doc.get("from") or "Unknown")
+            to_label = str(doc.get("to") or "Unknown")
+            count = doc.get("count", 0)
+
+            # ✅ Sanitize count
+            if not isinstance(count, (int, float)) or math.isnan(count) or math.isinf(count):
+                count = 0
+
+            # ✅ Initialize nested dicts
+            grouped_data.setdefault(toc, {})
+            grouped_data[toc].setdefault(cause, {"links": []})
+
+            grouped_data[toc][cause]["links"].append([
+                from_label,
+                to_label,
+                int(count)
+            ])
+
+        # 5️⃣ Add "All Causes" per Type of Claim
+        for toc, causes in grouped_data.items():
+            all_links = defaultdict(int)
+            for cause, values in causes.items():
+                for f, t, w in values["links"]:
+                    all_links[(f, t)] += w  # ✅ Use tuple key
+
+            grouped_data[toc]["All Causes"] = {
+                "links": [[f, t, w] for (f, t), w in all_links.items()]
+            }
+
+        # 6️⃣ Add "All Types"
+        all_types = defaultdict(lambda: defaultdict(int))
+        for toc, causes in grouped_data.items():
+            for cause, values in causes.items():
+                for f, t, w in values["links"]:
+                    all_types[cause][(f, t)] += w  # ✅ Use tuple key
+
+        for cause, pairs in all_types.items():
+            grouped_data.setdefault("All Types", {})
+            grouped_data["All Types"][cause] = {
+                "links": [[f, t, w] for (f, t), w in pairs.items()]
+            }
+
+        # ✅ Build plain response dict
+        response = {}
+        for toc, causes in grouped_data.items():
+            response[toc] = {}
+            for cause, val in causes.items():
+                response[toc][cause] = {"data": val["links"]}
+
+        return JSONResponse(
+            content={
+                "status": 200,
+                "filters": {"industry": industry, "period": period},
+                "result": response
+            },
+            media_type="application/json"
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {e}")
 
