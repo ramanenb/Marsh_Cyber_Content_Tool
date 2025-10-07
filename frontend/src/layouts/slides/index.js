@@ -2,15 +2,6 @@
 =========================================================
 * Material Dashboard 2 React - v2.2.0
 =========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
 // @mui material components
@@ -21,14 +12,18 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
+import MenuItem from "@mui/material/MenuItem";
+import IconButton from "@mui/material/IconButton";
+import DeleteIcon from "@mui/icons-material/Delete";
+import Checkbox from "@mui/material/Checkbox";
+import CircularProgress from "@mui/material/CircularProgress";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
-import MenuItem from "@mui/material/MenuItem";
-import IconButton from "@mui/material/IconButton";
-import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
 
 // Material Dashboard 2 React example components
@@ -36,63 +31,14 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import DataTable from "examples/Tables/DataTable";
 
-// state
-import { useState, useEffect } from "react";
+// state/hooks
+import { useState, useEffect, useMemo } from "react";
 
 function Slides() {
+  // proprietary data
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedFunction, setSelectedFunction] = useState("");
-  const [incidentRows, setIncidentRows] = useState([]);
-  const [incidentColumns] = useState([
-    { Header: "company", accessor: "company", width: "25%", align: "left" },
-    { Header: "details", accessor: "details", align: "left" },
-    {
-      Header: "hallucination likelihood",
-      accessor: "hallucinationLikelihood",
-      align: "left",
-    },
-    { Header: "action", accessor: "action", align: "center" },
-  ]);
-  const [showIncidents, setShowIncidents] = useState(false);
 
-  const handleGetIncidents = async () => {
-    try {
-      const response = await fetch("/api/incidents.json");
-      const data = await response.json();
-
-      const newRows = data.map((item) => {
-        // take first 5 words for the snippet
-        const snippet = item.details.split(" ").slice(0, 5).join(" ") + "...";
-
-        return {
-          company: item.company,
-          hallucinationLikelihood: item.hallucinationLikelihood,
-          details: snippet, // snippet column
-          action: (
-            <MDButton
-              variant="outlined"
-              color="info"
-              size="small"
-              onClick={() => {
-                setSelectedFunction(item.details); // full text
-                setOpenDialog(true);
-              }}
-            >
-              View
-            </MDButton>
-          ),
-        };
-      });
-
-      setIncidentRows(newRows);
-      setShowIncidents(true);
-    } catch (error) {
-      console.error("Failed to fetch incidents:", error);
-    }
-  };
-  const [isEditing, setIsEditing] = useState(false);
-
+  // industries data
   const [industryOptions, setIndustryOptions] = useState([]);
   const [selectedIndustries, setSelectedIndustries] = useState([]);
   const [newIndustry, setNewIndustry] = useState("");
@@ -101,34 +47,14 @@ function Slides() {
       try {
         const response = await fetch("http://localhost:8000/api/getIndustries");
         const data = await response.json();
-        if (data.industries) {
-          setIndustryOptions(data.industries);
-        }
+        if (data.industries) setIndustryOptions(data.industries);
       } catch (error) {
         console.error("Failed to fetch industries:", error);
       }
     };
-
     fetchIndustries();
   }, []);
-
-  const [newRegion, setNewRegion] = useState("");
-  const [regionOptions, setRegionOptions] = useState([
-    "Hong Kong SAR",
-    "India",
-    "Indonesia",
-    "Japan",
-    "Malaysia",
-    "People's Republic of China",
-    "Philippines",
-    "Singapore",
-    "South Korea",
-    "Taiwan",
-    "Thailand",
-    "Vietnam",
-  ]);
-  const [clientContext, setClientContext] = useState("");
-
+  //industry functions
   const handleAddIndustry = () => {
     if (newIndustry && !selectedIndustries.includes(newIndustry)) {
       setSelectedIndustries([...selectedIndustries, newIndustry]);
@@ -141,6 +67,250 @@ function Slides() {
     updated.splice(index, 1);
     setSelectedIndustries(updated);
   };
+
+  //region data
+  const [newRegion, setNewRegion] = useState("");
+  const [regionOptions] = useState([
+    "Africa",
+    "Asia",
+    "Europe",
+    "North America",
+    "Oceania",
+    "South America",
+  ]);
+
+  //client context data
+  const [clientContext, setClientContext] = useState("");
+
+  //incident data
+  const [incidentsData, setIncidentsData] = useState([]);
+  const [incidentColumns] = useState([
+    { Header: "", accessor: "select", width: "5%", align: "center" },
+    { Header: "company", accessor: "company", width: "15%", align: "left" },
+    {
+      Header: "Incident Details",
+      accessor: "executive_summary",
+      align: "left",
+    },
+    {
+      Header: "hallucination",
+      accessor: "hallucination_classification",
+      align: "center",
+    },
+    {
+      Header: "summariser",
+      accessor: "summariser_classification",
+      align: "center",
+    },
+    { Header: "action", accessor: "action", align: "center" },
+  ]);
+  const [showIncidents, setShowIncidents] = useState(false);
+
+  // store indices of selected incidents
+  const [selectedIncidents, setSelectedIncidents] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedFunction, setSelectedFunction] = useState("");
+  // incident functions
+  const handleGetIncidents = async () => {
+    setLoadingIncidents(true);
+    try {
+      const response = await fetch("http://localhost:8000/api/getIncidents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: clientContext || "cyber incidents",
+          industries:
+            selectedIndustries.length > 0
+              ? selectedIndustries
+              : ["All Industries"],
+          region: newRegion || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // `data.evaluated_articles` is the list you need to show in your table
+      if (data && data.evaluated_articles) {
+        setIncidentsData(data.evaluated_articles);
+        setShowIncidents(true);
+        setSelectedIncidents([]);
+      } else {
+        console.warn("No evaluated articles returned:", data);
+        setIncidentsData([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch incidents:", error);
+    } finally {
+      setLoadingIncidents(false);
+    }
+  };
+
+  const truncateText = (text, wordLimit = 5) => {
+    if (!text) return "—";
+    const words = text.split(" ");
+    return words.length > wordLimit
+      ? words.slice(0, wordLimit).join(" ") + "..."
+      : text;
+  };
+
+  // table function
+  const tableRows = useMemo(() => {
+    return incidentsData.map((item, index) => ({
+      select: (
+        <Checkbox
+          size="small"
+          checked={selectedIncidents.includes(index)}
+          onChange={(e) => {
+            setSelectedIncidents((prev) =>
+              e.target.checked
+                ? [...prev, index]
+                : prev.filter((i) => i !== index)
+            );
+          }}
+        />
+      ),
+      company: item.affected_organization || "N/A",
+      executive_summary: truncateText(item.executive_summary, 5),
+      hallucination_classification:
+        item.hallucination_classification || "unknown",
+      summariser_classification: item.summariser_classification || "unknown",
+      action: (
+        <MDButton
+          variant="outlined"
+          color="info"
+          size="small"
+          onClick={() => {
+            setSelectedFunction({
+              executive_summary: item.executive_summary || "",
+              background: item.background || "",
+              malicious_activity: item.malicious_activity || "",
+              outcomes_and_losses: item.outcomes_and_losses || "",
+              source_url: item.source_url || "",
+              hallucination_explanation: item.hallucination_explanation || "",
+              summariser_explanation: item.summariser_explanation || "",
+            });
+            setIsEditing(false);
+            setOpenDialog(true);
+          }}
+        >
+          View
+        </MDButton>
+      ),
+    }));
+  }, [incidentsData, selectedIncidents]);
+
+  // loading
+  const [loadingIncidents, setLoadingIncidents] = useState(false);
+  const [loadingExport, setLoadingExport] = useState(false);
+
+  // export function
+  const handleExportPowerPoint = async () => {
+    if (selectedIncidents.length === 0) {
+      setSnackbar({
+        open: true,
+        message: "Please select at least one incident before exporting.",
+        color: "error",
+      });
+      return;
+    }
+
+    setLoadingExport(true);
+
+    try {
+      const shortlisted = selectedIncidents.map((i) => {
+        const item = incidentsData[i];
+        return {
+          source: item.source || "Unknown Source",
+          executive_summary: item.executive_summary || "",
+          background: item.background || "",
+          malicious_activity: item.malicious_activity || "",
+          outcomes_and_losses: item.outcomes_and_losses || "",
+          reference_text: item.reference_text || "",
+          summarised_text: item.summarised_text || "",
+          source_url: item.source_url || "",
+          affected_organization: item.affected_organization || "",
+          hallucination_classification:
+            item.hallucination_classification || "N/A",
+          hallucination_explanation: item.hallucination_explanation || "",
+          summarizer_classification: item.summariser_classification || "N/A",
+          summarizer_explanation: item.summariser_explanation || "",
+        };
+      });
+
+      const payload = {
+        query: clientContext || "cyber incidents",
+        industries:
+          selectedIndustries.length > 0
+            ? selectedIndustries
+            : ["All Industries"],
+        region: newRegion || null,
+        shotlisted_articles: shortlisted,
+      };
+
+      const response = await fetch(
+        "http://localhost:8000/api/ppt/generate-presentation",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok)
+        throw new Error(`Server responded with status ${response.status}`);
+
+      const result = await response.json();
+      console.log("PowerPoint export result:", result);
+
+      if (result.success && result.download_url) {
+        window.open(result.download_url, "_blank");
+        setSnackbar({
+          open: true,
+          message: "Presentation generated successfully!",
+          color: "success",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Failed to generate PowerPoint. Please check the logs.",
+          color: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      setSnackbar({
+        open: true,
+        message: "Error exporting PowerPoint: " + error.message,
+        color: "error",
+      });
+    } finally {
+      setLoadingExport(false);
+    }
+  };
+
+  // snackbar feedback
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    color: "info",
+  });
+
+  useEffect(() => {
+    if (snackbar.open) {
+      const timer = setTimeout(() => {
+        setSnackbar((prev) => ({ ...prev, open: false }));
+      }, 3000); // 3 seconds
+
+      return () => clearTimeout(timer); // cleanup if unmounted or snackbar closes early
+    }
+  }, [snackbar.open]);
 
   return (
     <DashboardLayout>
@@ -169,12 +339,11 @@ function Slides() {
               multiple
               onChange={(e) => {
                 const uploaded = Array.from(e.target.files);
-                setUploadedFiles((prev) => [...prev, ...uploaded]); // append files
+                setUploadedFiles((prev) => [...prev, ...uploaded]);
               }}
             />
           </MDButton>
 
-          {/* Show Uploaded Files */}
           {uploadedFiles && uploadedFiles.length > 0 && (
             <MDBox mt={1}>
               <MDTypography variant="subtitle2">Uploaded Files:</MDTypography>
@@ -193,11 +362,11 @@ function Slides() {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => {
+                      onClick={() =>
                         setUploadedFiles((prev) =>
                           prev.filter((_, i) => i !== idx)
-                        );
-                      }}
+                        )
+                      }
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -208,11 +377,11 @@ function Slides() {
           )}
         </MDBox>
       </MDBox>
+
       <MDBox px={3} pt={3}>
         <MDTypography variant="h6">Select Industries</MDTypography>
 
-        {/* Selected industries */}
-        <MDBox display="flex">
+        <MDBox display="flex" gap={1} flexWrap="wrap">
           {selectedIndustries.map((industry, index) => (
             <MDBox
               key={index}
@@ -235,35 +404,29 @@ function Slides() {
           ))}
         </MDBox>
 
-        {/* Add new industry */}
-        <MDBox display="flex">
-          <MDBox display="flex" gap={1} flexWrap="wrap" mt={1}>
-            <MDInput
-              select
-              label="Add Industry"
-              value={newIndustry}
-              onChange={(e) => setNewIndustry(e.target.value)}
-              sx={{ minWidth: 300 }}
-              InputProps={{
-                style: { minHeight: 50, padding: "12px" },
-              }}
-            >
-              {industryOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </MDInput>
-            <MDButton
-              color="info"
-              variant="outlined"
-              onClick={handleAddIndustry}
-            >
-              Add
-            </MDButton>
-          </MDBox>
+        <MDBox display="flex" mt={1} gap={1} alignItems="center">
+          <MDInput
+            select
+            label="Add Industry"
+            value={newIndustry}
+            onChange={(e) => setNewIndustry(e.target.value)}
+            sx={{ minWidth: 300 }}
+            InputProps={{
+              style: { minHeight: 50, padding: "12px" },
+            }}
+          >
+            {industryOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </MDInput>
+          <MDButton color="info" variant="outlined" onClick={handleAddIndustry}>
+            Add
+          </MDButton>
         </MDBox>
       </MDBox>
+
       <MDBox px={3} pt={3}>
         <MDTypography variant="h6">Select Region</MDTypography>
         <MDBox display="flex" gap={1} mt={1}>
@@ -300,11 +463,20 @@ function Slides() {
           />
         </MDBox>
       </MDBox>
-      <MDBox px={3} pt={2}>
-        <MDButton color="info" variant="outlined" onClick={handleGetIncidents}>
-          Get Incidents
+
+      <MDBox px={3} pt={3}>
+        <MDButton
+          color="info"
+          variant="outlined"
+          onClick={handleGetIncidents}
+          disabled={loadingIncidents}
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          {loadingIncidents && <CircularProgress size={18} color="inherit" />}
+          {loadingIncidents ? "Loading..." : "Get Incidents"}
         </MDButton>
       </MDBox>
+
       {showIncidents && (
         <MDBox pt={6} pb={3}>
           <Grid container spacing={6}>
@@ -326,7 +498,7 @@ function Slides() {
                 </MDBox>
                 <MDBox pt={3}>
                   <DataTable
-                    table={{ columns: incidentColumns, rows: incidentRows }}
+                    table={{ columns: incidentColumns, rows: tableRows }}
                     isSorted={false}
                     entriesPerPage={false}
                     showTotalEntries={false}
@@ -336,9 +508,18 @@ function Slides() {
               </Card>
             </Grid>
           </Grid>
-          <MDBox px={3} pt={2}>
-            <MDButton color="info" variant="outlined">
-              Export to Powerpoint
+          <MDBox pt={3}>
+            <MDButton
+              color="info"
+              variant="outlined"
+              onClick={handleExportPowerPoint}
+              disabled={loadingExport || selectedIncidents.length === 0}
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
+              {loadingExport && (
+                <CircularProgress size={18} color="inherit" thickness={5} />
+              )}
+              {loadingExport ? "Exporting..." : "Export to PowerPoint"}
             </MDButton>
           </MDBox>
         </MDBox>
@@ -352,26 +533,101 @@ function Slides() {
       >
         <DialogTitle>Incident Details</DialogTitle>
         <DialogContent dividers>
-          {isEditing ? (
-            <MDInput
-              multiline
-              fullWidth
-              minRows={8}
-              value={selectedFunction}
-              onChange={(e) => setSelectedFunction(e.target.value)}
-            />
-          ) : (
-            <MDTypography variant="body2" whiteSpace="pre-line">
-              {selectedFunction}
-            </MDTypography>
+          {[
+            "executive_summary",
+            "background",
+            "malicious_activity",
+            "outcomes_and_losses",
+          ].map((field) => (
+            <MDBox key={field} mb={2}>
+              <MDTypography variant="subtitle2" color="text">
+                {field
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+              </MDTypography>
+              {isEditing ? (
+                <MDInput
+                  multiline
+                  fullWidth
+                  minRows={4}
+                  value={selectedFunction[field]}
+                  onChange={(e) =>
+                    setSelectedFunction((prev) => ({
+                      ...prev,
+                      [field]: e.target.value,
+                    }))
+                  }
+                  sx={{ mt: 0.5 }}
+                />
+              ) : (
+                <MDTypography
+                  variant="body2"
+                  whiteSpace="pre-line"
+                  sx={{ mt: 0.5 }}
+                >
+                  {selectedFunction[field] || "—"}
+                </MDTypography>
+              )}
+            </MDBox>
+          ))}
+
+          {selectedFunction.source_url && (
+            <MDBox mt={2}>
+              <MDTypography variant="subtitle2" color="text">
+                Source URL
+              </MDTypography>
+              <a
+                href={selectedFunction.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#1a73e8" }}
+              >
+                {selectedFunction.source_url}
+              </a>
+            </MDBox>
+          )}
+          {["hallucination_explanation", "summariser_explanation"].map(
+            (field) => (
+              <MDBox key={field} mb={2}>
+                <MDTypography variant="subtitle2" color="text">
+                  {field
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (l) => l.toUpperCase())}
+                </MDTypography>
+                {isEditing ? (
+                  <MDInput
+                    multiline
+                    fullWidth
+                    minRows={3}
+                    value={selectedFunction[field]}
+                    onChange={(e) =>
+                      setSelectedFunction((prev) => ({
+                        ...prev,
+                        [field]: e.target.value,
+                      }))
+                    }
+                    sx={{ mt: 0.5 }}
+                  />
+                ) : (
+                  <MDTypography
+                    variant="body2"
+                    whiteSpace="pre-line"
+                    sx={{ mt: 0.5 }}
+                  >
+                    {selectedFunction[field] || "—"}
+                  </MDTypography>
+                )}
+              </MDBox>
+            )
           )}
         </DialogContent>
+
         <DialogActions>
           {isEditing ? (
             <MDButton
               color="success"
               variant="gradient"
-              onClick={() => setIsEditing(false)} // save changes
+              onClick={() => setIsEditing(false)}
             >
               Save
             </MDButton>
@@ -389,6 +645,21 @@ function Slides() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={8000} // disappears after 3 seconds
+        anchorOrigin={{ vertical: "top", horizontal: "right" }} // top center
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <MuiAlert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.color} // 'success', 'error', 'info', 'warning'
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </DashboardLayout>
   );
 }
