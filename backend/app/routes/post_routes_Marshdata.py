@@ -10,8 +10,8 @@ router = APIRouter()
 from dateutil.relativedelta import relativedelta
 import random
 import math
-
-
+import json
+from fastapi.responses import JSONResponse
 
 @router.get("/unique_valueFOR", response_description="Find unique values for cause or claim type col", tags=["find_unqiue_ValueInCol"])
 async def find_unique(
@@ -40,7 +40,6 @@ async def find_unique(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-
 @router.get("/aggregate_by_filters", response_description="Aggregate incidents by filters")
 async def aggregate_by_filters(
     industry: str = Query(default="All Industries"),
@@ -702,7 +701,10 @@ async def aggregate_by_AffectedCountries(
                 cause: {
                     "labels": ["Countries"],
                     "datasets": [
-                        {"label": x, "data": [y]} for x,y in zip(val["labels"], val["data"])
+                        {"label": x, 
+                         "data": [y], 
+                         "backgroundColor": random.choice(["#1E3A8A", "#60A5FA", "#1D8494", "#111F30", "#6366F1"])
+                        } for x,y in zip(val["labels"], val["data"])
                     ]
                 }
                 for cause, val in causes.items()
@@ -719,10 +721,6 @@ async def aggregate_by_AffectedCountries(
         raise HTTPException(status_code=500, detail=str(e))
     
 # 7. Aggregates cyber incident for Sankey Chart showing claim type & result
-import math
-import json
-from fastapi.responses import JSONResponse
-
 @router.get("/aggregateby_Claim_Sankey", response_description="Aggregate cyber incidents by Type of Claim & Result of Claim.")
 async def aggregate_by_Sankey(
     industry: str = Query(default="All Industries"),
@@ -848,4 +846,99 @@ async def aggregate_by_Sankey(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {e}")
+
+def sanitize_for_json(obj):
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(i) for i in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return 0
+        return obj
+    return obj
+
+# 8. Aggregates cyber incident for Sankey Chart showing claim type & result
+@router.get("/aggregateby_IndivIncidents", response_description="Extract all the relevant incidents for that particular filter.")
+async def aggregate_by_Sankey(
+    industry: str = Query(default="All Industries"),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' or '1Y'"),
+    Cause: str = Query(default = "All Causes", description = "What causes this cyber incident"),
+    ClaimType: str = Query(default = "All Types", description = "What claim type was used")
+):
+    try:
+        # 1️⃣ Parse time period
+        now = datetime.now(timezone.utc)
+        if period.endswith("M"):
+            months = int(period[:-1])
+            start_date = now - relativedelta(months=months)
+        elif period.endswith("Y"):
+            years = int(period[:-1])
+            start_date = now - relativedelta(years=years)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+
+        # 2️⃣ MongoDB pipeline
+        pipeline = [
+            {
+                "$match": {
+                    "$and": [
+                        {"Incident Date": {"$gte": start_date}},
+                        {} if industry == "All Industries" else {"Industry": industry},
+                        {} if Cause == "All Causes" else {"Cause": Cause},
+                        {} if ClaimType == "All Types" else {"Type of Claim": ClaimType},
+                    ]
+                }
+            },
+            { "$sort": { "Incident Date": -1 } },
+            { "$limit": 40 },
+            {
+                "$project": {
+                    "_id": 0,
+                    "Client": "$Client Name",
+                    "Industry": "$Industry",
+                    "Incident_Date": {
+                        "$cond": [
+                            { "$eq": [ { "$type": "$Incident Date" }, "missing" ] },
+                            None,
+                            { "$dateToString": { "format": "%Y-%m-%d", "date": "$Incident Date" } }
+                        ]
+                    },
+                    "Cause": "$Cause",
+                    "Claim_Type": "$Type of Claim",
+                    "Claim_SubType": "$Sub Type of Claim",
+                    "Marsh_Loss_Estimate_USD": { "$ifNull": ["$Marsh Loss Estimate (USD)", 0] },
+                    "Total_Paid_USD": { "$ifNull": ["$Total Paid (USD)", 0] },
+                    "Description": "$Brief Description of Incident",
+                    "Loss_Details": "$Loss Details",
+                    "Claim_Result": "$Claim Result",
+                    "Claim_Pos": "$Claim Position",
+                    "Total_Paid": { "$ifNull": ["$Total Paid", 0] },
+                    "Policy_Currency": "$Policy Currency"
+                }
+            }
+        ]
+
+        # 3️⃣ Run aggregation
+        cursor = DB.marsh_proprietary_data.aggregate(pipeline)
+        results = await cursor.to_list(length=None)
+        
+        results = sanitize_for_json(results)
+        if not results:
+            return JSONResponse(
+                content={"status": 200, "message": "No data found for selected filters.", "result": []},
+                media_type="application/json"
+            )
+
+        return JSONResponse(
+            content={
+                "status": 200,
+                "filters": {"industry": industry, "period": period},
+                "result": results
+            },
+            media_type="application/json"
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

@@ -15,89 +15,46 @@ router = APIRouter()
 @router.get("/list_incidents", response_description="List latest cyber incidents")
 async def get_latest_incidents_by_industry(industry: str = Query(..., description="Industry name or 'All Industries'")):
     try:
-        if industry == "All Industries":
-            # Fetch latest 30 incidents across all industries
-            pipeline = [
-                {
-                    "$addFields": {
-                        "event_date_dt": {
-                            "$cond": [
-                                { "$eq": [ { "$type": "$event_date" }, "string" ] },
-                                { "$dateFromString": { "dateString": "$event_date" } },
-                                "$event_date"
-                            ]
-                        }
-                    }
-                },
-                { "$sort": { "event_date_dt": -1 } },
-                { "$limit": 30 },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": { "$toString": "$_id" },
-                        "Event_date": {
-                            "$cond": [
-                                { "$eq": [ { "$type": "$event_date_dt" }, "missing" ] },
-                                None,
-                                { "$dateToString": { "format": "%Y-%m-%d", "date": "$event_date_dt" } }
-                            ]
-                        },
-                        "Victim_Origin": "$affected_country",
-                        "Victim": "$affected_organization",
-                        "Industry": "$affected_industry",
-                        "event_type": 1,
-                        "event_subtype": 1,
-                        "Motive": "$motive",
-                        "Description": "$description",
-                        "Attacker": "$actor",
-                        "actor_type": 1,
-                        "Attacker_Origin": "$actor_country",
-                        "Link": "$source_url"
+        pipeline = [
+            { "$match": {} if industry == "All Industries" else {"affected_industry": industry} },
+            {
+                "$addFields": {
+                    "event_date_dt": {
+                        "$cond": [
+                            { "$eq": [ { "$type": "$event_date" }, "string" ] },
+                            { "$dateFromString": { "dateString": "$event_date" } },
+                            "$event_date"
+                        ]
                     }
                 }
-            ]
-        else:
-            # Fetch top 30 recent incidents for the specific industry
-            pipeline = [
-                { "$match": { "affected_industry": industry } },
-                {
-                    "$addFields": {
-                        "event_date_dt": {
-                            "$cond": [
-                                { "$eq": [ { "$type": "$event_date" }, "string" ] },
-                                { "$dateFromString": { "dateString": "$event_date" } },
-                                "$event_date"
-                            ]
-                        }
-                    }
-                },
-                { "$sort": { "event_date_dt": -1 } },
-                { "$limit": 30 },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": { "$toString": "$_id" },
-                        "Event_date": {
-                            "$cond": [
-                                { "$eq": [ { "$type": "$event_date_dt" }, "missing" ] },
-                                None,
-                                { "$dateToString": { "format": "%Y-%m-%d", "date": "$event_date_dt" } }
-                            ]
-                        },
-                        "Victim_Origin": "$affected_country",
-                        "Victim": "$affected_organization",
-                        "Industry": "$affected_industry",
-                        "event_type": 1,
-                        "event_subtype": 1,
-                        "Motive": "$motive",
-                        "Description": "$description",
-                        "Attacker": "$actor",
-                        "actor_type": 1,
-                        "Attacker_Origin": "$actor_country",
-                        "Link": "$source_url"
-                    }
+            },
+            { "$sort": { "event_date_dt": -1 } },
+            { "$limit": 40 },
+            {
+                "$project": {
+                    "_id": 0,
+                    "id": { "$toString": "$_id" },
+                    "Event_date": {
+                        "$cond": [
+                            { "$eq": [ { "$type": "$event_date_dt" }, "missing" ] },
+                            None,
+                            { "$dateToString": { "format": "%Y-%m-%d", "date": "$event_date_dt" } }
+                        ]
+                    },
+                    "Victim_Origin": "$affected_country",
+                    "Victim": "$affected_organization",
+                    "Industry": "$affected_industry",
+                    "event_type": 1,
+                    "event_subtype": 1,
+                    "Motive": "$motive",
+                    "Description": "$description",
+                    "Attacker": "$actor",
+                    "actor_type": 1,
+                    "Attacker_Origin": "$actor_country",
+                    "Link": "$source_url"
                 }
-            ]
+            }
+        ]
 
         cursor = DB.europec_maryland_test.aggregate(pipeline)
         response = await cursor.to_list(None)

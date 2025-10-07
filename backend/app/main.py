@@ -38,6 +38,7 @@ app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Loss_Est
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_CauseOrType"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_AffectedCountries"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Claim_Sankey"])
+app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_IndivIncidents"])
 
 app.include_router(query_router, prefix="/api")
 app.include_router(ppt_router, prefix="/api")

@@ -11,6 +11,7 @@ import Card from "@mui/material/Card";
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
+import MDBadge from "components/MDBadge";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -20,13 +21,8 @@ import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import DefaultDoughnutChart from "examples/Charts/DoughnutCharts/DefaultDoughnutChart";
 import HorizontalBarChart from "examples/Charts/BarCharts/HorizontalBarChart";
 
-// Data
-import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
-import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
-
 // Material Data Table 2 React example components
 import DataTable from "examples/Tables/DataTable";
-import authorsTableData from "layouts/tables/data/authorsTableData";
 import StackedBarChart from "examples/Charts/BarCharts/StackedBarChart/StackedBar";
 import RadarChart from "examples/Charts/RadarChart";
 import SankeyChart from "examples/Charts/SankeyChart/Sankey";
@@ -57,8 +53,6 @@ function useFetchData(endpoint_link) {
 }
 
 function MarshData_Dashboard() {
-  const { sales, tasks } = reportsLineChartData;
-  const { columns, rows } = authorsTableData();
 
   /* HANDLE REQUIRED TO POPULATE THE TOPBAR FILTER DROPDOWN */
   const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
@@ -144,11 +138,107 @@ function MarshData_Dashboard() {
     data: incidentsByIndustry_TPY_Countries,
     loading: loadingYearMonsth_TPY_Countries
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_AffectedCountries?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
-const {
+  const {
     data: incidentsByIndustry_TPY_Sankey,
     loading: loadingYearMonsth_TPY_Sankey
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Sankey?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
+  const {
+    data: incidentsByIndustry_TPY,
+    loading: loadingYearMonsth_TPY
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_IndivIncidents?industry=${selectedIndustry}&period=${selected_TimePeriod}&Cause=${selected_ClaimCause}&ClaimType=${selected_ClaimType}`);
 
+  // PREP datapoints for the claims table at the very BOTTOM
+  const Author = ({ image, name, email }) => (
+        <MDBox display="flex" alignItems="left" lineHeight={1}>
+          {/* <MDAvatar src={image} name={name} size="sm" /> */}
+          <MDBox ml={0} lineHeight={1}>
+            <MDTypography display="block" variant="button" fontWeight="medium">
+              {name}
+            </MDTypography>
+            <MDTypography variant="caption">{email}</MDTypography>
+          </MDBox>
+        </MDBox>
+      );
+
+  const columns = [
+      { Header: "Client", accessor: "Client", width: "45%", align: "left"},
+      { Header: "Industry", accessor: "Industry", align: "left" },
+      { Header: "Incident date", accessor: "Incident_date", align: "center" },
+      { Header: "Cause", accessor: "Cause", align: "center" },
+      { Header: "Claim Type", accessor: "Claim_Type", align: "center" },
+      { Header: "Marsh Loss Estimate (USD)", accessor: "Marsh_Loss_Estimate_USD", align: "center" },  
+      { Header: "Total Paid (USD)", accessor: "Total_Paid_USD", align: "center" },  
+      { Header: "Description", accessor: "Description", align: "center" },
+      { Header: "Loss Details", accessor: "Loss_Details", align: "center" },  
+      { Header: "Claim Result", accessor: "Claim_Result", align: "center" },  
+      { Header: "Claim Pos", accessor: "Claim_Pos", align: "center" },  
+      { Header: "Policy Currency", accessor: "Policy_Currency", align: "center" },  
+      { Header: "Total Paid", accessor: "Total_Paid", align: "center" },  
+  ];
+
+  var rows = incidentsByIndustry_TPY
+    .map(Incident_Info => (
+      {
+        Client: <Author name={Incident_Info.Client} />,
+        Industry: <Author name={Incident_Info.Industry} />,
+        Incident_date: (
+          <MDTypography variant="h6" color="text" fontWeight="medium">
+            {Incident_Info.Incident_Date}
+          </MDTypography>
+        ),
+        Cause: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Incident_Info.Cause}
+          </MDTypography>
+        ),
+        Claim_Type: <Author name={Incident_Info.Claim_Type} email={Incident_Info.Claim_SubType} />,
+        Marsh_Loss_Estimate_USD: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Math.round(Incident_Info.Marsh_Loss_Estimate_USD)}
+          </MDTypography>
+        ),
+        Total_Paid_USD: (
+          <MDTypography variant="h6" color="text" fontWeight="medium">
+            {Math.round(Incident_Info.Total_Paid_USD)}
+          </MDTypography>
+        ),
+        Description: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Incident_Info.Description}
+          </MDTypography>
+        )
+        ,
+        Loss_Details: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Incident_Info.Loss_Details}
+          </MDTypography>
+        )
+        ,
+        Claim_Result: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Incident_Info.Claim_Result}
+          </MDTypography>
+        )
+        ,
+        Claim_Pos: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Incident_Info.Claim_Pos}
+          </MDTypography>
+        )
+        ,
+        Total_Paid: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Math.round(Incident_Info.Total_Paid)}
+          </MDTypography>
+        )
+        ,
+        Policy_Currency: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Incident_Info.Policy_Currency}
+          </MDTypography>
+        )
+      }
+    ));
 
   return (
     <DashboardLayout>
@@ -208,7 +298,7 @@ const {
                 <ReportsLineChart
                   color="secondary"
                   title="Change in Claims over Time"
-                  description="Money is the most common motive at 60% (50) followed by Espionage"
+                  description="Note that periods used might not be consecutive"
                   date="campaign sent 2 days ago"
                   chart={incidentsByIndustry_TPYearMonth_CHANGE?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
                 />                
@@ -302,35 +392,6 @@ const {
               </MDBox>
             </Grid>
             
-          </Grid>
-        </MDBox>
-
-        {/* Fifth row of the Dashboard */}
-        <MDBox mt={3}>
-          <Grid container spacing={3}>
-
-            <Grid item xs={12} md={6} lg={8}>
-              <MDBox mb={3}>
-                <HorizontalBarChart
-                  color="secondary"
-                  title="Claims Handling Countries"
-                  date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
-                /> 
-              </MDBox>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsBarChart
-                  color="secondary"
-                  title="Time Taken to Report Claims"
-                  date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
-                />
-              </MDBox>
-            </Grid>
-
           </Grid>
         </MDBox>
         
