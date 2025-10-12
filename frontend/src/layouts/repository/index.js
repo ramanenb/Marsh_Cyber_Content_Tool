@@ -1,20 +1,3 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-// @mui material components
-
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
@@ -170,25 +153,27 @@ function Repo() {
           )}
         </MDBox>
 
-        {uploadedFiles.length > 0 && (
-  <MDBox mt={2}>
-    <MDButton onClick={handleUpload} color="info" disabled={loading}>
-      {loading ? "Uploading..." : "Process & Upload"}
-    </MDButton>
 
-    {loading && (
-      <MDBox mt={1}>
-        <LinearProgress color="info" />
-      </MDBox>
-    )}
+        <MDBox mt={2}>
+          {uploadedFiles.length > 0 && (
+            <MDButton onClick={handleUpload} color="info" disabled={loading}>
+              {loading ? "Uploading..." : "Process & Upload"}
+            </MDButton>
+          )}
 
-    {success && (
-      <MDTypography variant="body2" color="success.main" mt={1}>
-        Upload successful!
-      </MDTypography>
-    )}
-  </MDBox>
-)}
+          {loading && (
+            <MDBox mt={1}>
+              <LinearProgress color="info" />
+            </MDBox>
+          )}
+
+          {success && (
+            <MDTypography variant="body2" color="success.main" mt={1}>
+              Upload successful!
+            </MDTypography>
+          )}
+        </MDBox>
+        
       </MDBox>
     </DashboardLayout>
   );
