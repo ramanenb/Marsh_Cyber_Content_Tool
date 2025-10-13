@@ -46,7 +46,7 @@ function useFetchData(endpoint_link) {
         setData(pulled_data);
       })
       .catch((err) => setError(err))
-      .finally(() => {console.log("Failed"); setLoading(false);});
+      .finally(() => {console.log(endpoint_link); setLoading(false);});
   }, [endpoint_link]);
 
   return { data, loading, error };
@@ -60,12 +60,12 @@ function MarshData_Dashboard() {
   const handleIndustryChange = (event) => {
     setSelectedIndustry(event);
   };
-  const {
+  var {
     data: Industries,
     loading: loadingIndustry,
   } = useFetchData("http://127.0.0.1:8000/api/getIndustries");
   // Build Industry dropdown options safely
-  const ALL_IndustriesValues = [
+  var ALL_IndustriesValues = [
     "All Industries",
     ...new Set(Object.values(Industries|| {})),
   ];
@@ -76,12 +76,12 @@ function MarshData_Dashboard() {
   const handleClaimsCauseChange = (event) => {
     setSelected_ClaimCause(event);
   };
-  const {
+  var {
     data: ClaimCauses,
     loading: loadingClaimCauses,
   } = useFetchData("http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause");
   // Build Industry dropdown options safely
-  const ALL_ClaimCausesValues = [
+  var ALL_ClaimCausesValues = [
     "All Causes",
     ...new Set(Object.values(ClaimCauses|| {})),
   ];
@@ -92,18 +92,18 @@ function MarshData_Dashboard() {
   const handleClaimsTypeChange = (event) => {
     setSelected_ClaimType(event);
   };
-  const {
+  var {
     data: ClaimTypes,
     loading: loadingClaimType,
   } = useFetchData("http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim");
   // Build Industry dropdown options safely
-  const ALL_ClaimTypeValues = [
+  var ALL_ClaimTypeValues = [
     "All Types",
     ...new Set(Object.values(ClaimTypes|| {})),
   ];
 
 
-  const [selected_TimePeriod, setSelected_TimePeriod] = useState("5Y");
+  const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
   // Function to handle the Types selection change
   const handleTimePeriodChange = (event) => {
     setSelected_TimePeriod(event);
@@ -148,7 +148,7 @@ function MarshData_Dashboard() {
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_IndivIncidents?industry=${selectedIndustry}&period=${selected_TimePeriod}&Cause=${selected_ClaimCause}&ClaimType=${selected_ClaimType}`);
 
   // PREP datapoints for the claims table at the very BOTTOM
-  const Author = ({ image, name, email }) => (
+  const Author = ({ name, email }) => (
         <MDBox display="flex" alignItems="left" lineHeight={1}>
           {/* <MDAvatar src={image} name={name} size="sm" /> */}
           <MDBox ml={0} lineHeight={1}>
@@ -179,62 +179,62 @@ function MarshData_Dashboard() {
   var rows = incidentsByIndustry_TPY
     .map(Incident_Info => (
       {
-        Client: <Author name={Incident_Info.Client} />,
-        Industry: <Author name={Incident_Info.Industry} />,
+        Client: <Author name={Incident_Info?.Client} email={""}/>
+        ,
+        Industry: <Author name={Incident_Info?.Industry} />,
         Incident_date: (
           <MDTypography variant="h6" color="text" fontWeight="medium">
-            {Incident_Info.Incident_Date}
+            {Incident_Info?.Incident_Date}
           </MDTypography>
         ),
         Cause: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Incident_Info.Cause}
+            {Incident_Info?.Cause}
           </MDTypography>
         ),
-        Claim_Type: <Author name={Incident_Info.Claim_Type} email={Incident_Info.Claim_SubType} />,
+        Claim_Type: <Author name={Incident_Info?.Claim_Type} email={Incident_Info?.Claim_SubType} />,
         Marsh_Loss_Estimate_USD: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Math.round(Incident_Info.Marsh_Loss_Estimate_USD)}
+            {Math.round(Incident_Info?.Marsh_Loss_Estimate_USD)}
           </MDTypography>
         ),
         Total_Paid_USD: (
           <MDTypography variant="h6" color="text" fontWeight="medium">
-            {Math.round(Incident_Info.Total_Paid_USD)}
+            {Math.round(Incident_Info?.Total_Paid_USD)}
           </MDTypography>
         ),
         Description: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Incident_Info.Description}
+            {Incident_Info?.Description}
           </MDTypography>
         )
         ,
         Loss_Details: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Incident_Info.Loss_Details}
+            {Incident_Info?.Loss_Details}
           </MDTypography>
         )
         ,
         Claim_Result: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Incident_Info.Claim_Result}
+            {Incident_Info?.Claim_Result}
           </MDTypography>
         )
         ,
         Claim_Pos: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Incident_Info.Claim_Pos}
-          </MDTypography>
-        )
-        ,
-        Total_Paid: (
-          <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Math.round(Incident_Info.Total_Paid)}
+            {Incident_Info?.Claim_Pos}
           </MDTypography>
         )
         ,
         Policy_Currency: (
           <MDTypography variant="caption" color="text" fontWeight="medium">
-            {Incident_Info.Policy_Currency}
+            {Incident_Info?.Policy_Currency}
+          </MDTypography>
+        ),
+        Total_Paid: (
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {Math.round(Incident_Info?.Total_Paid)}
           </MDTypography>
         )
       }
@@ -394,7 +394,8 @@ function MarshData_Dashboard() {
             
           </Grid>
         </MDBox>
-        
+
+        {/* fifth row of the Dashboard */}
         <MDBox>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6} lg={12}>
