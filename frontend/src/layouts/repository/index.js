@@ -9,6 +9,8 @@ import LinearProgress from "@mui/material/LinearProgress";
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import DataTable from "examples/Tables/DataTable";
+import { useEffect } from "react";
 
 // state
 import { useState, useCallback } from "react";
@@ -17,6 +19,27 @@ function Repo() {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [mongoData, setMongoData] = useState([]);
+
+  //mongo Data
+  const fetchMongoData = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/get_prop_data/");
+      const result = await res.json();
+  
+      if (result.status === "success") {
+        setMongoData(result.data);
+      } else {
+        console.error("Error fetching MongoDB data:", result.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch MongoDB data:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMongoData();
+  }, []);  
 
   // Handle dropped files
   const handleDrop = useCallback((e) => {
@@ -60,6 +83,7 @@ function Repo() {
       console.log("Upload response:", data);
       setSuccess(true); // indicate success
       setUploadedFiles([]); // clear uploaded files
+      await fetchMongoData(); // refresh data from MongoDB
     } catch (err) {
       console.error("Upload failed:", err);
       setSuccess(false);
@@ -173,7 +197,52 @@ function Repo() {
             </MDTypography>
           )}
         </MDBox>
-        
+
+        {mongoData.length > 0 && (
+        <MDBox mt={4}>
+          <MDTypography variant="h6" gutterBottom>
+            MongoDB Records
+          </MDTypography>
+          <DataTable
+            table={{
+              columns: [
+                { Header: "Claim Number", accessor: "_id" },
+                { Header: "Client Name", accessor: "Client Name" },
+                { Header: "Coverage", accessor: "Coverage" },
+                { Header: "Incident Date", accessor: "Incident Date" },
+                { Header: "Country", accessor: "Country (Set ID)" },
+                { Header: "Cause", accessor: "Cause" },
+                { Header: "Type of Claim", accessor: "Type of Claim" },
+                { Header: "Industry", accessor: "Industry" },
+                {
+                  Header: "Total Paid (USD)",
+                  accessor: "Total Paid (USD)",
+                  Cell: ({ value }) =>
+                    value !== undefined && value !== null
+                      ? value.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : "-",
+                },
+                { Header: "Claim Result", accessor: "Claim Result" },
+              ],
+              rows: mongoData.map((item) => ({
+                ...item,
+                "Incident Date": item["Incident Date"]
+                  ? new Date(item["Incident Date"]["$date"]).toLocaleDateString()
+                  : "N/A",
+              })),
+            }}
+            isSorted={false}
+            entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
+            showTotalEntries={false}
+            noEndBorder
+          />
+        </MDBox>
+        )}
+
+
       </MDBox>
     </DashboardLayout>
   );
