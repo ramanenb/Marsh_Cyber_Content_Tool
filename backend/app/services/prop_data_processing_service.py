@@ -1,8 +1,10 @@
-from app.config.settings import DB, PROPRIETARY_COLLECTION, INDUSTRIES_COLLECTION, embedding_model, openai_client, S3_BUCKET_NAME, S3_REGION, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID
-from datetime import datetime, timezone
+from app.config.settings import DB, PROPRIETARY_COLLECTION, INDUSTRIES_COLLECTION, embedding_model, openai_client, S3_BUCKET_NAME, S3_REGION, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, S3_REGION, S3_BUCKET_NAME
+from datetime import datetime, timezone, timedelta
 import pycountry_convert as pc
 import pandas as pd
 import boto3, os, pytz
+from botocore.exceptions import ClientError
+import re
 
 def build_claim_embedding_text(row):
     def is_known(value):
@@ -154,3 +156,71 @@ def save_to_s3_bytes(file_bytes, filename):
         return s3_key
     except Exception as e:
         print("S3 upload failed:", e)
+
+
+def list_files_with_urls(bucket_name=S3_BUCKET_NAME, prefix="propdata/", expiration=604800): #7 days
+    s3_client = boto3.client(
+        service_name='s3',
+        region_name=S3_REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
+
+    try:
+        response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+        files = []
+
+        if "Contents" in response:
+            for obj in response["Contents"]:
+                key = obj["Key"]
+                if key.endswith("/"):
+                    continue
+
+                filename = key.split("/")[-1]
+
+                # 🔹 Extract datetime from filename (format: dd-mm-yyyy-hhmmss_PropData.xlsx)
+                match = re.match(r"(\d{2}-\d{2}-\d{4})-(\d{6})", filename)
+                parsed_dt = None
+
+                if match:
+                    date_part, time_part = match.groups()
+                    try:
+                        # Parse into UTC datetime first
+                        dt = datetime.strptime(f"{date_part}-{time_part}", "%d-%m-%Y-%H%M%S")
+                        parsed_dt = dt.replace(tzinfo=timezone.utc)
+                        uploaded_at = parsed_dt.strftime("%Y-%m-%d %H:%M:%S (SGT)")
+                    except ValueError:
+                        uploaded_at = "Unknown"
+                else:
+                    uploaded_at = "Unknown"
+
+                # 🔹 Generate presigned URL
+                url = s3_client.generate_presigned_url(
+                    "get_object",
+                    Params={"Bucket": bucket_name, "Key": key},
+                    ExpiresIn=expiration
+                )
+
+                files.append({
+                    "filename": filename,
+                    "s3_key": key,
+                    "url": url,
+                    "uploaded_at": uploaded_at,
+                    "uploaded_dt": parsed_dt  # keep for sorting
+                })
+
+        # 🔹 Sort newest first (descending)
+        files.sort(
+            key=lambda x: x["uploaded_dt"] or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True
+        )
+
+        # Remove helper field before returning
+        for f in files:
+            f.pop("uploaded_dt", None)
+
+        return files
+
+    except Exception as e:
+        print(f"Error listing files: {e}")
+        return []

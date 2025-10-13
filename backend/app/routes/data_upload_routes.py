@@ -7,7 +7,9 @@ import traceback
 from io import BytesIO
 from bson.json_util import dumps
 import json
-from app.services.prop_data_processing_service import marsh_data_process, upsert_mongo, save_to_s3_bytes
+from math import isnan
+from bson import json_util, ObjectId
+from app.services.prop_data_processing_service import marsh_data_process, upsert_mongo, save_to_s3_bytes, list_files_with_urls
 
 router = APIRouter()
 
@@ -69,9 +71,43 @@ async def get_prop_data():
         }
 
         data = list(PROPRIETARY_COLLECTION.find({}, projection))     
-        json_data = json.loads(dumps(data))
 
-        return {"status": "success", "data": json_data}
+        def normalize(doc):
+            for k, v in doc.items():
+                # Handle ObjectId
+                if isinstance(v, ObjectId):
+                    doc[k] = str(v)
+                # Handle datetime
+                elif isinstance(v, datetime):
+                    doc[k] = v.isoformat()+'Z'
+                # Handle float('nan')
+                elif isinstance(v, float) and isnan(v):
+                    doc[k] = None
+                # Handle nested MongoDB extended JSON
+                elif isinstance(v, dict):
+                    if "$numberDouble" in v:
+                        val = float(v["$numberDouble"])
+                        doc[k] = None if isnan(val) else val
+                    elif "$numberInt" in v:
+                        doc[k] = int(v["$numberInt"])
+                    elif "$date" in v:
+                        doc[k] = v["$date"]
+                    else:
+                        normalize(v)
+            return doc
+        
+        #json_data = json.loads(dumps(data))
+        normalized_data = [normalize(d) for d in data]
 
+        return {"status": "success", "data": normalized_data}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@router.get("/list_uploaded_files/")
+async def list_uploaded_files():
+    try:
+        files = list_files_with_urls()
+        return {"status": "success", "data": files}
     except Exception as e:
         return {"status": "error", "message": str(e)}

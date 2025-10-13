@@ -20,12 +20,14 @@ function Repo() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [mongoData, setMongoData] = useState([]);
+  const [uploadedFileLinks, setUploadedFileLinks] = useState([]);
 
   //mongo Data
   const fetchMongoData = async () => {
     try {
       const res = await fetch("http://localhost:8000/api/get_prop_data/");
       const result = await res.json();
+      console.log("Sample record from API:", result.data?.[0]);
   
       if (result.status === "success") {
         setMongoData(result.data);
@@ -37,8 +39,25 @@ function Repo() {
     }
   };
 
+  // s3 file links
+  const fetchUploadedFiles = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/list_uploaded_files/");
+      const result = await res.json();
+  
+      if (result.status === "success") {
+        setUploadedFileLinks(result.data);
+      } else {
+        console.error("Error fetching uploaded files:", result.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch uploaded files:", err);
+    }
+  };
+
   useEffect(() => {
     fetchMongoData();
+    fetchUploadedFiles();
   }, []);  
 
   // Handle dropped files
@@ -84,6 +103,7 @@ function Repo() {
       setSuccess(true); // indicate success
       setUploadedFiles([]); // clear uploaded files
       await fetchMongoData(); // refresh data from MongoDB
+      await fetchUploadedFiles(); // refresh uploaded files list
     } catch (err) {
       console.error("Upload failed:", err);
       setSuccess(false);
@@ -227,12 +247,17 @@ function Repo() {
                 },
                 { Header: "Claim Result", accessor: "Claim Result" },
               ],
-              rows: mongoData.map((item) => ({
-                ...item,
-                "Incident Date": item["Incident Date"]
-                  ? new Date(item["Incident Date"]["$date"]).toLocaleDateString()
-                  : "N/A",
-              })),
+              rows: mongoData.map((item) => {
+                console.log("Parsing date:", item["Incident Date"]);
+                const parsed = new Date(item["Incident Date"]);
+                console.log("Parsed result:", parsed);
+                return {
+                  ...item,
+                  "Incident Date": item["Incident Date"]
+                    ? parsed.toLocaleDateString()
+                    : "N/A",
+                };
+              }),
             }}
             isSorted={false}
             entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
@@ -242,6 +267,49 @@ function Repo() {
         </MDBox>
         )}
 
+        {uploadedFileLinks.length > 0 && (
+          <MDBox mt={6}>
+            <MDTypography variant="h6" gutterBottom>
+              Uploaded Proprietary Data Files
+            </MDTypography>
+            <DataTable
+              table={{
+                columns: [
+                  { Header: "File Name", accessor: "filename" },
+                  {
+                    Header: "Uploaded At",
+                    accessor: "uploaded_at",
+                    Cell: ({ value }) =>
+                      value
+                        ? new Date(value).toLocaleString()
+                        : "Unknown",
+                  },
+                  {
+                    Header: "Download Link",
+                    accessor: "url",
+                    Cell: ({ value }) => (
+                      <MDButton
+                        color="info"
+                        size="small"
+                        component="a"
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open
+                      </MDButton>
+                    ),
+                  },
+                ],
+                rows: uploadedFileLinks,
+              }}
+              isSorted={false}
+              entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
+              showTotalEntries={false}
+              noEndBorder
+            />
+          </MDBox>
+        )}
 
       </MDBox>
     </DashboardLayout>
