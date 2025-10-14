@@ -28,12 +28,23 @@ def process_date(period: str):
 
 @router.get("/unique_valueFOR", response_description="Find unique values for cause or claim type col")
 async def find_unique(
-    group_by_field: str = Query("Cause", enum=["Cause", "Type of Claim"])
+    group_by_field: str = Query("Cause", enum=["Cause", "Type of Claim"]),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year"),
+    industry: str = Query(default="All Industries")
 ):
     try:
+        start_date = process_date(period)
+
         # MongoDB aggregation to get distinct values
         pipeline = [
-            {"$match": {group_by_field: {"$exists": True, "$ne": None}}},
+            {"$match": {
+                "$and": [
+                    {group_by_field: {"$exists": True, "$ne": None}},
+                    {"Incident Date": {"$gte": start_date}},
+                    {} if industry == "All Industries" else {"Industry": industry},
+                    ]
+                }
+            },
             {"$group": {"_id": f"${group_by_field}"}},
             {"$sort": {"_id": 1}}
         ]
@@ -469,7 +480,8 @@ async def aggregate_by_Loss_Estimate(
 async def aggregate_by_CauseOrType(
     industry: str = Query(default="All Industries"),
     period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year"),
-    group_by_field: str = Query(default="Cause", enum=["Cause", "Type of Claim"])
+    group_by_field: str = Query(default="Cause", enum=["Cause", "Type of Claim"]),
+    aggregation_method: str = Query(default="Count", enum=["Count", "Sum_Loss", "Avg_Loss"])
 ):
     try:
         start_date = process_date(period)
@@ -492,7 +504,19 @@ async def aggregate_by_CauseOrType(
             },
             {
                 "$facet": {
-                    # Group by secondary field first, then group_by_field
+                    # Group by secondary field first, then group_by_field. Grouping is done in 2 stages as
+                    ## { _id: {Cause: "Fire", Type: "Manufacturing"}, count: 50 }
+                    ## { _id: {Cause: "Fire", Type: "Retail"}, count: 30 }
+                    ## TO nested form
+                    ## {
+                    ## "_id": "Fire",
+                    ## "sub_groups": [
+                    ##     {"Type": "Manufacturing", "count": 50},
+                    ##     {"Type": "Retail", "count": 30}
+                    ## ],
+                    ## "total": 80
+                    ## }
+
                     "grouped": [
                         {
                             "$group": {
@@ -500,7 +524,11 @@ async def aggregate_by_CauseOrType(
                                     secondary_field: f"${secondary_field}",
                                     group_by_field: f"${group_by_field}"
                                 },
-                                "count": {"$sum": 1}
+                                "count": (
+                                    {"$sum": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Sum_Loss" else 
+                                    {"$avg": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Avg_Loss" else 
+                                    {"$sum": 1}
+                                )
                             }
                         },
                         {
@@ -522,7 +550,11 @@ async def aggregate_by_CauseOrType(
                         {
                             "$group": {
                                 "_id": f"${group_by_field}",
-                                "count": {"$sum": 1}
+                                "count": (
+                                    {"$sum": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Sum_Loss" else 
+                                    {"$avg": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Avg_Loss" else 
+                                    {"$sum": 1}
+                                )
                             }
                         },
                         {

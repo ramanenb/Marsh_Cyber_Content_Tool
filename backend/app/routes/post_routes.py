@@ -2,21 +2,41 @@
 from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Query
 from app.config.settings import DB
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil.relativedelta import relativedelta
 from bson import ObjectId
 router = APIRouter()
 
-# 1. Read the top 9 rows of data from MongoDB
-from fastapi import APIRouter, HTTPException, Query
-from datetime import datetime
-
-router = APIRouter()
+def process_date(period: str):
+    # 1️⃣ Parse time period (e.g. '3M', '1Y')
+    now = datetime.now(timezone.utc)
+    if period.endswith("M"):
+        months = int(period[:-1])
+        start_date = now - relativedelta(months=months)
+    elif period.endswith("Y"):
+        years = int(period[:-1])
+        start_date = now - relativedelta(years=years)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+    return start_date
 
 @router.get("/list_incidents", response_description="List latest cyber incidents")
-async def get_latest_incidents_by_industry(industry: str = Query(..., description="Industry name or 'All Industries'")):
+async def get_latest_incidents_by_industry(
+    industry: str = Query(..., description="Industry name or 'All Industries'"),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")):
+    
     try:
+        start_date = process_date(period)
+
         pipeline = [
-            { "$match": {} if industry == "All Industries" else {"affected_industry": industry} },
+            {
+                "$match": {
+                    "$and": [
+                        {"event_date": {"$gte": start_date}},
+                        {} if industry == "All Industries" else {"affected_industry": industry}
+                    ]
+                }
+            },
             {
                 "$addFields": {
                     "event_date_dt": {
@@ -65,10 +85,15 @@ async def get_latest_incidents_by_industry(industry: str = Query(..., descriptio
 
 # 2. Aggregates cyber incidents by industry and month, and also provides a total count of incidents for all industries per month.
 @router.get("/aggregate_by_industry_and_month", response_description="Aggregate cyber incidents by industry and month, including total incidents per month.")
-async def aggregate_by_industry_and_month():
+async def aggregate_by_industry_and_month(period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")):
   
     try:
+        start_date = process_date(period)
+
         pipeline = [
+            {
+                "$match": {"event_date": {"$gte": start_date}}
+            },
             # Stage 1: Add new fields for year and month.
             {
                 "$addFields": {
@@ -222,10 +247,16 @@ async def aggregate_by_industry_and_month():
 # 3. Aggregates cyber incidents by industry, and count by the event_subtype.
 @router.get("/aggregate_by_industry", response_description="Aggregate cyber incidents by industry and another field.")
 async def aggregate_by_industry(
-    group_by_field: str = Query("event_subtype", enum=["event_subtype", "affected_country", "motive"])
+    group_by_field: str = Query("event_subtype", enum=["event_subtype", "affected_country", "motive"]),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")
 ):
     try:
+        start_date = process_date(period)
+
         pipeline = [
+            {
+                "$match": {"event_date": {"$gte": start_date}}
+            },
             {
                 "$facet": {
                     "by_industry": [
@@ -315,9 +346,14 @@ async def aggregate_by_industry(
     
 # 4. Aggregates cyber incidents by industry, and count by the actor type & have an extra field actor_type.
 @router.get("/aggregate_by_industry_and_actors", response_description="Aggregate cyber incidents by industry and actors.")
-async def aggregate_by_industry_AND_actors():
+async def aggregate_by_industry_AND_actors(period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")):
     try:
+        start_date = process_date(period)
+
         pipeline = [
+            {
+                "$match": {"event_date": {"$gte": start_date}}
+            },
             {
                 "$facet": {
                     "by_industry": [

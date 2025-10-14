@@ -50,6 +50,11 @@ function useFetchData(endpoint_link) {
 }
 
 function Dashboard() {
+  const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
+  // Function to handle the Types selection change
+  const handleTimePeriodChange = (event) => {
+    setSelected_TimePeriod(event);
+  };
 
   const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
 
@@ -57,7 +62,7 @@ function Dashboard() {
   const {
     data: incidentsByIndustryYearMonth,
     loading: loadingYearMonth,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_month");
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry_and_month?period=${selected_TimePeriod}`);
 
   // Build Industry dropdown options safely
   const ALL_IndustryValues = [
@@ -71,24 +76,24 @@ function Dashboard() {
   const {
     data: incidentsByIndustry_EventSubtype,
     loading: loadingSubtype,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=event_subtype");
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=event_subtype&period=${selected_TimePeriod}`);
 
   const {
     data: incidentsByIndustry_Motive,
     loading: loadingMotive,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=motive");
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=motive&period=${selected_TimePeriod}`);
 
   const {
     data: incidentsByIndustry_Actor,
     loading: loadingActor,
-  } = useFetchData("http://127.0.0.1:8000/api/aggregate_by_industry_and_actors");
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry_and_actors?period=${selected_TimePeriod}`);
 
   /* Code Needed to generate the TABLE at the bottom */
   const {
     data: Incidents,
     loading: loadingIncidents,
     error: errorIncidents
-  } = useFetchData(`http://127.0.0.1:8000/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}`);
+  } = useFetchData(`http://127.0.0.1:8000/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}&period=${selected_TimePeriod}`);
 
   const columns = [
       { Header: "Victim", accessor: "Victim", width: "45%", align: "left"},
@@ -182,6 +187,10 @@ function Dashboard() {
           Selected_Industry = {selectedIndustry}
           ALL_IndustryValues = {ALL_IndustryValues}
           onIndustry_FilterChange = {handleIndustryChange}
+
+          selected_TimePeriod={selected_TimePeriod}
+          ALL_TimePeriodValues={["1Y", "3Y", "5Y"]}
+          onTimePeriod_FilterChange={handleTimePeriodChange}
         />)
       }
 
@@ -195,8 +204,15 @@ function Dashboard() {
                 <ReportsLineChart
                   color="secondary"
                   title="How many incidents occured over time?"
-                  description={<></>}
-                  chart={incidentsByIndustryYearMonth[selectedIndustry] || { labels: [], datasets: [] }}
+                  description={` 
+                      ${Math.round(
+                        100.0 * (incidentsByIndustryYearMonth?.[selectedIndustry]?.["datasets"]?.["data"]?.at(-1) - incidentsByIndustryYearMonth?.[selectedIndustry]?.["datasets"]?.["data"]?.at(-2)) /
+                        incidentsByIndustryYearMonth?.[selectedIndustry]?.["datasets"]?.["data"]?.at(-2)
+                        ) || "No Data"
+                      }%
+                      change from ${incidentsByIndustryYearMonth?.[selectedIndustry]?.["labels"]?.at(-2) || "No Data"} to ${incidentsByIndustryYearMonth?.[selectedIndustry]?.["labels"]?.at(-1) || "No Data"}
+                    `}
+                  chart={incidentsByIndustryYearMonth?.[selectedIndustry] || { labels: [], datasets: [] }}
                 />
               </MDBox>
             </Grid>
@@ -206,7 +222,15 @@ function Dashboard() {
                 <DefaultDoughnutChart
                   color="secondary"
                   title={"What is the impact of the attacks?"}
-                  chart={incidentsByIndustry_EventSubtype[selectedIndustry] || { labels: [], datasets: [] }}
+                  description={` 
+                      ${incidentsByIndustry_EventSubtype?.[selectedIndustry]?.["labels"]?.at(0) || "No Data"} accounts for
+                      ${Math.round(
+                        100.0 * incidentsByIndustry_EventSubtype?.[selectedIndustry]?.["datasets"]?.["data"]?.at(0) /
+                        incidentsByIndustry_EventSubtype?.[selectedIndustry]?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)
+                        ) || "No Data"
+                      }% of total incidents
+                  `}
+                  chart={incidentsByIndustry_EventSubtype?.[selectedIndustry] || { labels: [], datasets: [] }}
                 />
               </MDBox>
             </Grid>
@@ -223,7 +247,20 @@ function Dashboard() {
                   color="secondary"
                   title="Who are the attackers?"
                   date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_Actor[selectedIndustry] || { labels: [], datasets: [] }}
+                  description={` 
+                      First 2 Attackers accounts for
+                      ${Math.round(
+                        100.0 * incidentsByIndustry_Actor?.[selectedIndustry]?.["datasets"]?.["data"]?.at(0) /
+                        incidentsByIndustry_Actor?.[selectedIndustry]?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)
+                      ) || "No Data"
+                      }% and 
+                      ${Math.round(
+                        100.0 * incidentsByIndustry_Actor?.[selectedIndustry]?.["datasets"]?.["data"]?.at(1) /
+                        incidentsByIndustry_Actor?.[selectedIndustry]?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)
+                      ) || "No Data"
+                      }% respectively of total incidents
+                  `}
+                  chart={incidentsByIndustry_Actor?.[selectedIndustry] || { labels: [], datasets: [] }}
                 />                
               </MDBox>
             </Grid>
@@ -234,7 +271,7 @@ function Dashboard() {
                   color="secondary"
                   title="What drives attackers?"
                   date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_Motive[selectedIndustry] || { labels: [], datasets: [] }}
+                  chart={incidentsByIndustry_Motive?.[selectedIndustry] || { labels: [], datasets: [] }}
                 />
               </MDBox>
             </Grid>

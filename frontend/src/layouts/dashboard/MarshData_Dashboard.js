@@ -53,6 +53,11 @@ function useFetchData(endpoint_link) {
 }
 
 function MarshData_Dashboard() {
+  const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
+  // Function to handle the Types selection change
+  const handleTimePeriodChange = (event) => {
+    setSelected_TimePeriod(event);
+  };
 
   /* HANDLE REQUIRED TO POPULATE THE TOPBAR FILTER DROPDOWN */
   const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
@@ -79,7 +84,7 @@ function MarshData_Dashboard() {
   var {
     data: ClaimCauses,
     loading: loadingClaimCauses,
-  } = useFetchData("http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause");
+  } = useFetchData(`http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause&period=${selected_TimePeriod}&industry=${selectedIndustry}`);
   // Build Industry dropdown options safely
   var ALL_ClaimCausesValues = [
     "All Causes",
@@ -95,19 +100,12 @@ function MarshData_Dashboard() {
   var {
     data: ClaimTypes,
     loading: loadingClaimType,
-  } = useFetchData("http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim");
+  } = useFetchData(`http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim&period=${selected_TimePeriod}&industry=${selectedIndustry}`);
   // Build Industry dropdown options safely
   var ALL_ClaimTypeValues = [
     "All Types",
     ...new Set(Object.values(ClaimTypes|| {})),
   ];
-
-
-  const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
-  // Function to handle the Types selection change
-  const handleTimePeriodChange = (event) => {
-    setSelected_TimePeriod(event);
-  };
 
   // ✅ Fetch datasets
   const {
@@ -146,6 +144,14 @@ function MarshData_Dashboard() {
     data: incidentsByIndustry_TPY,
     loading: loadingYearMonsth_TPY
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_IndivIncidents?industry=${selectedIndustry}&period=${selected_TimePeriod}&Cause=${selected_ClaimCause}&ClaimType=${selected_ClaimType}`);
+    const {
+    data: incidentsByIndustry_TPY_Cause_SumLoss,
+    loading: loadingYearMonth_Cause_SumLoss,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Sum_Loss`);
+    const {
+    data: incidentsByIndustry_TPY_Cause_AvgLoss,
+    loading: loadingYearMonth_Cause_AvgLoss,
+  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Avg_Loss`);
 
   // PREP datapoints for the claims table at the very BOTTOM
   const Author = ({ name, email }) => (
@@ -242,24 +248,28 @@ function MarshData_Dashboard() {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar 
-        dashboardView={true}
-        Selected_Industry={selectedIndustry}
-        ALL_IndustryValues={ALL_IndustriesValues}
-        onIndustry_FilterChange={handleIndustryChange}
+      {loadingYearMonth ? 
+        (<p> Loading Marsh Data....</p>) :
 
-        selected_ClaimCause={selected_ClaimCause}
-        ALL_ClaimsCauseValues={ALL_ClaimCausesValues}
-        onCause_FilterChange={handleClaimsCauseChange}
+        (<DashboardNavbar 
+          dashboardView={true}
+          Selected_Industry={selectedIndustry}
+          ALL_IndustryValues={ALL_IndustriesValues}
+          onIndustry_FilterChange={handleIndustryChange}
 
-        selected_ClaimType={selected_ClaimType}
-        ALL_ClaimsTypeValues={ALL_ClaimTypeValues}
-        onType_FilterChange={handleClaimsTypeChange}
+          selected_ClaimCause={selected_ClaimCause}
+          ALL_ClaimsCauseValues={ALL_ClaimCausesValues}
+          onCause_FilterChange={handleClaimsCauseChange}
 
-        selected_TimePeriod={selected_TimePeriod}
-        ALL_TimePeriodValues={["3M", "6M", "1Y", "3Y", "5Y"]}
-        onTimePeriod_FilterChange={handleTimePeriodChange}
-      />
+          selected_ClaimType={selected_ClaimType}
+          ALL_ClaimsTypeValues={ALL_ClaimTypeValues}
+          onType_FilterChange={handleClaimsTypeChange}
+
+          selected_TimePeriod={selected_TimePeriod}
+          ALL_TimePeriodValues={["3M", "6M", "1Y", "3Y", "5Y"]}
+          onTimePeriod_FilterChange={handleTimePeriodChange}
+        />)
+      }
 
       {/* First row of the Dashboard */}
       <MDBox py={3}>
@@ -396,6 +406,35 @@ function MarshData_Dashboard() {
         </MDBox>
 
         {/* fifth row of the Dashboard */}
+        <MDBox mt={3}>
+          <Grid container spacing={3}>
+
+            <Grid item xs={12} md={6} lg={6}>
+              <MDBox mb={3}>
+                <HorizontalBarChart
+                  color="secondary"
+                  title="Sum of Estimated Loss by Claim Cause"
+                  date="campaign sent 2 days ago"
+                  chart={incidentsByIndustry_TPY_Cause_SumLoss?.["Output"]?.[selected_ClaimType] || { labels: [], datasets: [] }}
+                />                
+              </MDBox>
+            </Grid>
+
+            <Grid item xs={12} md={6} lg={6}>
+              <MDBox mb={3}>
+                <HorizontalBarChart
+                  color="secondary"
+                  title="Avg of Estimated Loss by Claim Cause"
+                  date="campaign sent 2 days ago"
+                  chart={incidentsByIndustry_TPY_Cause_AvgLoss?.["Output"]?.[selected_ClaimType] || { labels: [], datasets: [] }}
+                />  
+              </MDBox>
+            </Grid>
+            
+          </Grid>
+        </MDBox>
+
+        {/* sixth row of the Dashboard */}
         <MDBox>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6} lg={12}>

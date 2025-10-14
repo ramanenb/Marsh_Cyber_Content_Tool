@@ -60,7 +60,10 @@ import SourceIcon from '@mui/icons-material/Source';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import PublicIcon from '@mui/icons-material/Public';
 
-function DashboardNavbar({ absolute, light, isMini, Selected_Industry, ALL_IndustryValues, onIndustry_FilterChange, dashboardView = false }) {
+function DashboardNavbar({ absolute, light, isMini, 
+    Selected_Industry, ALL_IndustryValues, onIndustry_FilterChange, 
+    selected_TimePeriod, ALL_TimePeriodValues, onTimePeriod_FilterChange, dashboardView = false }) {
+
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
@@ -160,6 +163,31 @@ function DashboardNavbar({ absolute, light, isMini, Selected_Industry, ALL_Indus
 
         {isMini ? null : (
           <MDBox sx={(theme) => navbarRow(theme, { isMini })}>
+
+            {/* Time Period Filter dropdown */}
+            <MDBox pr={2} sx={{minWidth: 130}}>
+              {dashboardView == false ?
+                (<MDInput label = "Search"/>) 
+                :
+                (<MDInput
+                  select
+                  fullWidth
+                  label="Time Period"
+                  value={selected_TimePeriod}
+                  onChange={(e) => onTimePeriod_FilterChange(e.target.value)}
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: 45, // ⬅️ actual box height
+                    }
+                  }}
+                >
+                  {ALL_TimePeriodValues.map((ind) => (
+                    <MenuItem value={ind}>{ind}</MenuItem>
+                  ))}
+                </MDInput>
+              )
+              }
+            </MDBox>
 
             {/* Industry Filter dropdown */}
             <MDBox pr={2} sx={{minWidth: 150}}>
