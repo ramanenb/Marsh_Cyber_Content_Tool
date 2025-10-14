@@ -1,3 +1,4 @@
+import json
 import time
 from app.config.settings import llm
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -38,6 +39,41 @@ def clean_webpage_text(raw_text: str, starts_at: str) -> str:
     response = llm(messages)
     return response.content.strip()
 
+async def extract_date_from_text(text: str) -> str | None:
+    print(text)
+    """
+    Extract the full incident date in ISO format (YYYY-MM-DDT00:00:00.000+00:00).
+    If no incident date is available, extract the published date.
+    If neither is available, return "NA".
+    """
+    prompt = f"""
+    You are an information extraction system.
+
+    From the following article content, identify:
+
+    1. The exact INCIDENT DATE of the cybersecurity event (if described).
+    2. If no incident date is mentioned, identify the PUBLISHED DATE (if given).
+
+    Return ONLY ONE of the following in this priority order:
+    - Incident date in the format: YYYY-MM-DDT00:00:00.000+00:00
+    - If incident date not available, return the published date in the same format: YYYY-MM-DDT00:00:00.000+00:00
+    - If neither exists, return exactly "NA"
+
+    Do not include any additional text or explanation.
+
+    Article:
+    {text}
+    """
+    response = llm([HumanMessage(content=prompt)])
+    date = response.content.strip()
+
+    # if YYYY-MM-DD format, convert to ISO format
+    if date != "NA" and len(date) == 10:  
+        date = f"{date}T00:00:00.000+00:00"
+
+    print(date)
+    return date
+
 async def fetch_full_text_async(url: str, starts_at: str) -> str:
     """Async load full article text using WebBaseLoader."""
     BLOCKED_DOMAINS = [
@@ -56,10 +92,10 @@ async def fetch_full_text_async(url: str, starts_at: str) -> str:
         docs = loader.aload()
         raw_text = " ".join(doc.page_content for doc in docs)
         clean_text = clean_webpage_text(raw_text, starts_at)
-        return clean_text
+        return raw_text, clean_text
     except Exception as e:
         print(f"[WARN] Failed to fetch {url}: {e}")
-        return ""
+        return "", ""
 
 async def process_result_async(result: dict) -> dict:
     start_time = time.perf_counter()
@@ -99,14 +135,17 @@ async def process_result_async(result: dict) -> dict:
     print(f"[INFO] Fetched {len(tasks)} URLs in {fetch_end - fetch_start:.2f} seconds")
 
     # Assign results back
-    for task, full_text in zip(doc_map.keys(), results):
+    for task, (raw_text, clean_text) in zip(doc_map.keys(), results):
         target, item = doc_map[task]
         if target == "retrieved_docs":
             # append to original page_content in case article content isn't good
-            item["page_content"] += "\n" + full_text
+            item["page_content"] += "\n" + clean_text
             processed["retrieved_docs"].append(item)
         else:
-            item["content"] = full_text
+            item["content"] = clean_text
+            # Extract date asynchronously (string in ISO format or "NA")
+            date = await extract_date_from_text(raw_text)
+            item["date"] = date
             processed["news_articles"].append(item)
 
     total_time = time.perf_counter() - start_time

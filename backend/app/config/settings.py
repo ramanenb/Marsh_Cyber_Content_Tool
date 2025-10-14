@@ -2,6 +2,7 @@
 '''
 Central place to create and share a single MongoDB client and a handle to your database.
 '''
+import asyncio
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -28,8 +29,30 @@ print("✅ Arize Phoenix OTEL tracing initialized")
 
 # MongoDB settings
 MONGO_URL = os.getenv("MONGO_URL")
-client = AsyncIOMotorClient(MONGO_URL) # Used for non-blocking database operations e.g. dashboard
-pymongo_client = MongoClient(MONGO_URL) # Used for retrieval
+client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000) # Used for non-blocking database operations e.g. dashboard
+pymongo_client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000) # Used for retrieval
+
+try:
+    # Ping the server
+    pymongo_client.admin.command("ping")
+    print("✅ Synchronous MongoDB connection successful")
+except Exception as e:
+    print("❌ Synchronous MongoDB connection failed:", e)
+
+async def test_async_connection():
+    try:
+        await client.admin.command("ping")
+        print("✅ Async MongoDB connection successful")
+    except Exception as e:
+        print("❌ Async MongoDB connection failed:", e)
+
+# Run test
+loop = asyncio.get_event_loop()
+if loop.is_running():
+    # Use create_task if loop is already running
+    asyncio.create_task(test_async_connection())
+else:
+    loop.run_until_complete(test_async_connection())
 
 # Database and collections 
 DB_NAME = "DB"
