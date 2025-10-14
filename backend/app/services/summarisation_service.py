@@ -1,6 +1,7 @@
 import asyncio
+from datetime import datetime, timezone
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Union
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -83,7 +84,7 @@ def format_incident_summary(summary_dict):
         formatted_output += f"{header}\n{value}\n\n"
     return formatted_output.strip()
 
-async def process_single_article_flat(article_content: str, source_type: str, source_url: str, affected_organization: str) -> Dict[str, Any]:
+async def process_single_article_flat(article_content: str, source_type: str, source_url: str, affected_organization: str, event_date: Optional[Union[str, datetime]]) -> Dict[str, Any]:
     """
     Process a single article and return flat structure with summarised content
     """
@@ -103,6 +104,25 @@ async def process_single_article_flat(article_content: str, source_type: str, so
         # Parse the JSON result
         summary_data = json.loads(text)
 
+        #print(f"Original event date: {event_date}")
+        # Normalize event_date to ISO string in the format YYYY-MM-DDT00:00:00.000+00:00
+        if isinstance(event_date, datetime):
+            # If datetime is naive (no tzinfo), assume UTC
+            if event_date.tzinfo is None:
+                event_date = event_date.replace(tzinfo=timezone.utc)
+            event_date = event_date.isoformat(timespec='milliseconds')
+        elif isinstance(event_date, str):
+            # Handle YYYY-MM-DD format
+            if len(event_date) == 10 and event_date.count('-') == 2:
+                event_date = f"{event_date}T00:00:00.000+00:00"
+            # If ISO without timezone: YYYY-MM-DDTHH:MM:SS
+            elif event_date.endswith("T00:00:00"):
+                event_date = f"{event_date}.000+00:00"
+            # If already ISO with timezone, leave as-is
+        else:
+            event_date = "NA"
+        #print(f"Final event date: {event_date}")
+
         # Create flat structure with direct field access
         flat_result = {
             'source': source_type,
@@ -113,7 +133,8 @@ async def process_single_article_flat(article_content: str, source_type: str, so
             'reference_text': article_content,
             'summarised_text': format_incident_summary(summary_data),
             'source_url': source_url,
-            'affected_organization': affected_organization
+            'affected_organization': affected_organization,
+            'date': event_date
         }
 
         return flat_result
@@ -129,7 +150,8 @@ async def process_single_article_flat(article_content: str, source_type: str, so
             'reference_text': article_content,
             'summarised_text': f'ERROR: {str(e)}',
             'source_url': source_url,
-            'affected_organization': affected_organization
+            'affected_organization': affected_organization,
+            'date': event_date
         }
 
 async def process_all_articles_flat(articles_dict: Dict[str, List]) -> List[Dict[str, Any]]:
@@ -143,7 +165,9 @@ async def process_all_articles_flat(articles_dict: Dict[str, List]) -> List[Dict
         for doc in articles_dict['retrieved_docs']:
             # Extract page_content from Document objects
             content = doc.get('page_content', '') if isinstance(doc, dict) else str(doc)
-            task = process_single_article_flat(content, 'internal_database', doc.get('metadata', {}).get('source_url'), doc.get('metadata', {}).get('affected_organization'))
+            metadata = doc.get('metadata', {})
+            event_date = metadata.get("event_date")
+            task = process_single_article_flat(content, 'internal_database', metadata.get('source_url'), metadata.get('affected_organization'), event_date)
             tasks.append(task)
 
     # Create tasks for news articles
@@ -151,14 +175,17 @@ async def process_all_articles_flat(articles_dict: Dict[str, List]) -> List[Dict
         for article in articles_dict['news_articles']:
             # Extract content from the article structure
             content = article.get('content', '') if isinstance(article, dict) else str(article)
-            task = process_single_article_flat(content, 'news_articles', article.get('url'), article.get('affected_organization'))
+            date = article.get("date")
+            task = process_single_article_flat(content, 'news_articles', article.get('url'), article.get('affected_organization'), date)
             tasks.append(task)
 
     if 'proprietary_data' in articles_dict:
         for data in articles_dict['proprietary_data']:
             # Extract content from the article structure
             content = data.get('page_content', '') if isinstance(data, dict) else str(data)
-            task = process_single_article_flat(content, 'proprietary_data', 'Marsh Internal Data', data.get('metadata', {}).get("Client Name"))
+            metadata = data.get('metadata', {})
+            event_date = metadata.get("Incident Date")
+            task = process_single_article_flat(content, 'proprietary_data', 'Marsh Internal Data', metadata.get("Client Name"), event_date)
             tasks.append(task)
 
     # Run all tasks in parallel
