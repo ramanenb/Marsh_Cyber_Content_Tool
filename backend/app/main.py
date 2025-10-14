@@ -31,7 +31,7 @@ app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?grou
 
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_actors"])
 
-app.include_router(Marsh_post_router, prefix="/api", tags=["find_unqiue_ValueInCol"])
+app.include_router(Marsh_post_router, prefix="/api", tags=["unique_valueFOR"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregate_by_filters"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Claim_Coverage"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Loss_Estimate"])
