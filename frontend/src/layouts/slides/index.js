@@ -283,7 +283,7 @@ function Slides() {
             ? selectedIndustries
             : ["All Industries"],
         region: newRegion || null,
-        shotlisted_articles: shortlisted,
+        shortlisted_articles: shortlisted,
       };
 
       const response = await fetch(

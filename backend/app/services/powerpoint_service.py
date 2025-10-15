@@ -11,7 +11,7 @@ import uuid
 import boto3
 import requests
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import shutil
 from pathlib import Path
 
@@ -62,7 +62,7 @@ class PPTGenerationRequest(BaseModel):
     query: str
     industries: Optional[List[str]] = []
     region: Optional[str] = ""
-    shotlisted_articles: List[ArticlePayload]
+    shortlisted_articles: List[ArticlePayload]
 
 class PPTGenerationResponse(BaseModel):
     success: bool
@@ -140,6 +140,40 @@ def generate_presigned_url(s3_key: str, expiration: int = 3600) -> str:
     except Exception as e:
         print(f"Error generating presigned URL: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate download URL: {str(e)}")
+
+
+def list_pptx_with_urls(bucket_name=S3_BUCKET_NAME, prefix="generated/", expiration=604800):
+
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+    files = []
+
+    # If no files found
+    if "Contents" not in response:
+        return files
+
+    tz_sg = timezone(timedelta(hours=8))
+
+    for obj in response["Contents"]:
+        key = obj["Key"]
+        if key.endswith(".pptx"):
+            # Generate a presigned URL
+            presigned_url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket_name, "Key": key},
+                ExpiresIn=expiration,
+            )
+
+            files.append({
+                "filename": key.split("/")[-1],
+                "uploaded_at": obj["LastModified"].astimezone(tz_sg).isoformat(),
+                "url": presigned_url,
+            })
+
+    # Sort newest first (optional)
+    files.sort(key=lambda x: x["uploaded_at"], reverse=True)
+
+    return files
+
 
 # ==================== LOGO FUNCTIONS ====================
 async def search_company_domain(company_name: str) -> Optional[str]:
@@ -372,7 +406,7 @@ async def generate_powerpoint_presentation(request: PPTGenerationRequest) -> PPT
         
         # Build presentation
         await build_complete_presentation(
-            payload_list=request.shotlisted_articles,
+            payload_list=request.shortlisted_articles,
             template_path=template_path,
             output_path=output_path,
             temp_dir=temp_dir
@@ -385,7 +419,7 @@ async def generate_powerpoint_presentation(request: PPTGenerationRequest) -> PPT
             query=request.query,
             industries=request.industries,
             region=request.region,
-            articles_count=len(request.shotlisted_articles)
+            articles_count=len(request.shortlisted_articles)
         )
         
         # Generate presigned download URL (24 hours)
@@ -397,7 +431,7 @@ async def generate_powerpoint_presentation(request: PPTGenerationRequest) -> PPT
             presentation_id=presentation_id,
             download_url=download_url,
             expires_at=expires_at,
-            articles_processed=len(request.shotlisted_articles),
+            articles_processed=len(request.shortlisted_articles),
             message="Presentation generated successfully!"
         )
         

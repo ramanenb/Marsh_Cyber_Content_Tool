@@ -23,6 +23,7 @@ function Repo() {
   const [success, setSuccess] = useState(false);
   const [mongoData, setMongoData] = useState([]);
   const [uploadedFileLinks, setUploadedFileLinks] = useState([]);
+  const [uploadedPptxLinks, setUploadedPptxLinks] = useState([]);
 
   //mongo Data
   const fetchMongoData = async () => {
@@ -57,10 +58,28 @@ function Repo() {
     }
   };
 
+  // pptx file links
+  const fetchUploadedPptxFiles = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/ppt/list_s3_ppt/");
+      const result = await res.json();
+      console.log("Fetched PPTX result:", result);
+
+      if (result.status === "success") {
+        setUploadedPptxLinks(result.data);
+      } else {
+        console.error("Error fetching uploaded pptx files:", result.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch uploaded pptx files:", err);
+    }
+  };
+
   useEffect(() => {
     fetchMongoData();
     fetchUploadedFiles();
-  }, []);
+    fetchUploadedPptxFiles();
+  }, []);  
 
   // Handle dropped files
   const handleDrop = useCallback((e) => {
@@ -236,52 +255,53 @@ function Repo() {
         </MDBox>
 
         {mongoData.length > 0 && (
-          <MDBox mt={4}>
-            <MDTypography variant="h6" gutterBottom>
-              MongoDB Records
-            </MDTypography>
-            <DataTable
-              table={{
-                columns: [
-                  { Header: "Claim Number", accessor: "_id" },
-                  { Header: "Client Name", accessor: "Client Name" },
-                  { Header: "Coverage", accessor: "Coverage" },
-                  { Header: "Incident Date", accessor: "Incident Date" },
-                  { Header: "Country", accessor: "Country (Set ID)" },
-                  { Header: "Cause", accessor: "Cause" },
-                  { Header: "Type of Claim", accessor: "Type of Claim" },
-                  { Header: "Industry", accessor: "Industry" },
-                  {
-                    Header: "Total Paid (USD)",
-                    accessor: "Total Paid (USD)",
-                    Cell: ({ value }) =>
-                      value !== undefined && value !== null
-                        ? value.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })
-                        : "-",
-                  },
-                  { Header: "Claim Result", accessor: "Claim Result" },
-                ],
-                rows: mongoData.map((item) => {
-                  console.log("Parsing date:", item["Incident Date"]);
-                  const parsed = new Date(item["Incident Date"]);
-                  console.log("Parsed result:", parsed);
-                  return {
-                    ...item,
-                    "Incident Date": item["Incident Date"]
-                      ? parsed.toLocaleDateString()
-                      : "N/A",
-                  };
-                }),
-              }}
-              isSorted={false}
-              entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
-              showTotalEntries={false}
-              noEndBorder
-            />
-          </MDBox>
+        <MDBox mt={4}>
+          <MDTypography variant="h6" gutterBottom>
+            MongoDB Records
+          </MDTypography>
+          <DataTable
+            table={{
+              columns: [
+                { Header: "Claim Number", accessor: "_id" },
+                { Header: "Client Name", accessor: "Client Name" },
+                { Header: "Coverage", accessor: "Coverage" },
+                { Header: "Incident Date", accessor: "Incident Date" },
+                { Header: "Country", accessor: "Country (Set ID)" },
+                { Header: "Cause", accessor: "Cause" },
+                { Header: "Type of Claim", accessor: "Type of Claim" },
+                { Header: "Industry", accessor: "Industry" },
+                {
+                  Header: "Total Paid (USD)",
+                  accessor: "Total Paid (USD)",
+                  Cell: ({ value }) =>
+                    value !== undefined && value !== null
+                      ? value.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : "-",
+                },
+                { Header: "Claim Result", accessor: "Claim Result" },
+              ],
+              rows: mongoData.map((item) => {
+                console.log("Parsing date:", item["Incident Date"]);
+                const parsed = new Date(item["Incident Date"]);
+                console.log("Parsed result:", parsed);
+                return {
+                  ...item,
+                  "Incident Date": item["Incident Date"]
+                    ? parsed.toLocaleDateString()
+                    : "N/A",
+                };
+              }),
+            }}
+            isSorted={true}
+            entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
+            showTotalEntries={false}
+            canSearch={true}
+            noEndBorder
+          />
+        </MDBox>
         )}
 
         {uploadedFileLinks.length > 0 && (
@@ -325,6 +345,51 @@ function Repo() {
             />
           </MDBox>
         )}
+
+        {uploadedPptxLinks.length > 0 && (
+          <MDBox mt={6}>
+            <MDTypography variant="h6" gutterBottom>
+              Generated PPTX Files
+            </MDTypography>
+            <DataTable
+              table={{
+                columns: [
+                  { Header: "File Name", accessor: "filename" },
+                  {
+                    Header: "Uploaded At",
+                    accessor: "uploaded_at",
+                    Cell: ({ value }) =>
+                      value
+                        ? new Date(value).toLocaleString()
+                        : "Unknown",
+                  },
+                  {
+                    Header: "Download Link",
+                    accessor: "url",
+                    Cell: ({ value }) => (
+                      <MDButton
+                        color="info"
+                        size="small"
+                        component="a"
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open
+                      </MDButton>
+                    ),
+                  },
+                ],
+                rows: uploadedPptxLinks,
+              }}
+              isSorted={false}
+              entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
+              showTotalEntries={false}
+              noEndBorder
+            />
+          </MDBox>
+        )}
+
       </MDBox>
       <Snackbar
         open={snackbar.open}
