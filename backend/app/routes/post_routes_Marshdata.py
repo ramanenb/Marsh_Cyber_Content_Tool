@@ -10,17 +10,41 @@ router = APIRouter()
 from dateutil.relativedelta import relativedelta
 import random
 import math
+import json
+from fastapi.responses import JSONResponse
 
+def process_date(period: str):
+    # 1️⃣ Parse time period (e.g. '3M', '1Y')
+    now = datetime.now(timezone.utc)
+    if period.endswith("M"):
+        months = int(period[:-1])
+        start_date = now - relativedelta(months=months)
+    elif period.endswith("Y"):
+        years = int(period[:-1])
+        start_date = now - relativedelta(years=years)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+    return start_date
 
-
-@router.get("/unique_valueFOR", response_description="Find unique values for cause or claim type col", tags=["find_unqiue_ValueInCol"])
+@router.get("/unique_valueFOR", response_description="Find unique values for cause or claim type col")
 async def find_unique(
-    group_by_field: str = Query("Cause", enum=["Cause", "Type of Claim"])
+    group_by_field: str = Query("Cause", enum=["Cause", "Type of Claim"]),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year"),
+    industry: str = Query(default="All Industries")
 ):
     try:
+        start_date = process_date(period)
+
         # MongoDB aggregation to get distinct values
         pipeline = [
-            {"$match": {group_by_field: {"$exists": True, "$ne": None}}},
+            {"$match": {
+                "$and": [
+                    {group_by_field: {"$exists": True, "$ne": None}},
+                    {"Incident Date": {"$gte": start_date}},
+                    {} if industry == "All Industries" else {"Industry": industry},
+                    ]
+                }
+            },
             {"$group": {"_id": f"${group_by_field}"}},
             {"$sort": {"_id": 1}}
         ]
@@ -28,7 +52,15 @@ async def find_unique(
         cursor = DB.marsh_proprietary_data.aggregate(pipeline)
         results = await cursor.to_list(None)
 
-        unique_values = [r["_id"] for r in results if r["_id"]]
+        # Clean any NaN or non-JSON values since w/o this it throws an error
+        unique_values = []
+        for r in results:
+            val = r.get("_id")
+            # Handle None, NaN, or empty strings
+            if val is None or (isinstance(val, float) and math.isnan(val)) or val == "":
+                val = "Unknown"
+            val = val.replace("FINPRO - ", "")
+            unique_values.append(val)
 
         return {
             "status": 200,
@@ -40,7 +72,6 @@ async def find_unique(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-
 @router.get("/aggregate_by_filters", response_description="Aggregate incidents by filters")
 async def aggregate_by_filters(
     industry: str = Query(default="All Industries"),
@@ -48,16 +79,7 @@ async def aggregate_by_filters(
     isChange: int = Query(default= 0)
 ):
     try:
-        # 1️⃣ Parse time period (e.g. '3M', '1Y')
-        now = datetime.now(timezone.utc)
-        if period.endswith("M"):
-            months = int(period[:-1])
-            start_date = now - relativedelta(months=months)
-        elif period.endswith("Y"):
-            years = int(period[:-1])
-            start_date = now - relativedelta(years=years)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+        start_date = process_date(period)
 
         # 2️⃣ Build MongoDB pipeline
         pipeline = [
@@ -128,6 +150,8 @@ async def aggregate_by_filters(
 
         for doc in results:
             toc = doc.get("type_of_claim") or "Unknown"
+            toc = str(toc)
+            toc = toc.replace("FINPRO - ", "")
             cause = doc.get("cause") or "Unknown"
             label = f"{doc['month']}-{str(doc['year'])[-2:]}"
             grouped_data[toc][cause]["labels"].append(label)
@@ -215,16 +239,7 @@ async def aggregate_by_Coverage(
     period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")
 ):
     try:
-        # 1️⃣ Parse time period (e.g. '3M', '1Y')
-        now = datetime.now(timezone.utc)
-        if period.endswith("M"):
-            months = int(period[:-1])
-            start_date = now - relativedelta(months=months)
-        elif period.endswith("Y"):
-            years = int(period[:-1])
-            start_date = now - relativedelta(years=years)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+        start_date = process_date(period)
 
         # 2️⃣ Build MongoDB pipeline
         pipeline = [
@@ -272,6 +287,7 @@ async def aggregate_by_Coverage(
             label = doc.get("Coverage") or "Unknown"
 
             toc = str(toc)
+            toc = toc.replace("FINPRO - ", "")
             cause = str(cause)
             label = str(label)
 
@@ -341,16 +357,7 @@ async def aggregate_by_Loss_Estimate(
     bins: int = Query(default=10, description="Number of histogram bins")
 ):
     try:
-        # 1️⃣ Parse time period (e.g. '3M', '1Y')
-        now = datetime.now(timezone.utc)
-        if period.endswith("M"):
-            months = int(period[:-1])
-            start_date = now - relativedelta(months=months)
-        elif period.endswith("Y"):
-            years = int(period[:-1])
-            start_date = now - relativedelta(years=years)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+        start_date = process_date(period)
 
         # 2️⃣ Build MongoDB pipeline to extract Loss Estimate with Type of Claim and Cause
         pipeline = [
@@ -395,6 +402,7 @@ async def aggregate_by_Loss_Estimate(
                 loss_value = float(value)
                 
                 toc = str(doc.get("type_of_claim", "Unknown"))
+                toc = toc.replace("FINPRO - ", "")
                 cause = str(doc.get("cause", "Unknown"))
                 
                 grouped_data[toc][cause].append(loss_value)
@@ -472,17 +480,11 @@ async def aggregate_by_Loss_Estimate(
 async def aggregate_by_CauseOrType(
     industry: str = Query(default="All Industries"),
     period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year"),
-    group_by_field: str = Query(default="Cause", enum=["Cause", "Type of Claim"])
+    group_by_field: str = Query(default="Cause", enum=["Cause", "Type of Claim"]),
+    aggregation_method: str = Query(default="Count", enum=["Count", "Sum_Loss", "Avg_Loss"])
 ):
     try:
-        # 1️⃣ Parse time period
-        now = datetime.now(timezone.utc)
-        if period.endswith("M"):
-            start_date = now - relativedelta(months=int(period[:-1]))
-        elif period.endswith("Y"):
-            start_date = now - relativedelta(years=int(period[:-1]))
-        else:
-            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+        start_date = process_date(period)
 
         # 2️⃣ Determine fields
         if group_by_field == "Cause":
@@ -502,7 +504,19 @@ async def aggregate_by_CauseOrType(
             },
             {
                 "$facet": {
-                    # Group by secondary field first, then group_by_field
+                    # Group by secondary field first, then group_by_field. Grouping is done in 2 stages as
+                    ## { _id: {Cause: "Fire", Type: "Manufacturing"}, count: 50 }
+                    ## { _id: {Cause: "Fire", Type: "Retail"}, count: 30 }
+                    ## TO nested form
+                    ## {
+                    ## "_id": "Fire",
+                    ## "sub_groups": [
+                    ##     {"Type": "Manufacturing", "count": 50},
+                    ##     {"Type": "Retail", "count": 30}
+                    ## ],
+                    ## "total": 80
+                    ## }
+
                     "grouped": [
                         {
                             "$group": {
@@ -510,7 +524,11 @@ async def aggregate_by_CauseOrType(
                                     secondary_field: f"${secondary_field}",
                                     group_by_field: f"${group_by_field}"
                                 },
-                                "count": {"$sum": 1}
+                                "count": (
+                                    {"$sum": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Sum_Loss" else 
+                                    {"$avg": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Avg_Loss" else 
+                                    {"$sum": 1}
+                                )
                             }
                         },
                         {
@@ -532,7 +550,11 @@ async def aggregate_by_CauseOrType(
                         {
                             "$group": {
                                 "_id": f"${group_by_field}",
-                                "count": {"$sum": 1}
+                                "count": (
+                                    {"$sum": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Sum_Loss" else 
+                                    {"$avg": "$Marsh Loss Estimate (USD)"} if aggregation_method == "Avg_Loss" else 
+                                    {"$sum": 1}
+                                )
                             }
                         },
                         {
@@ -562,8 +584,8 @@ async def aggregate_by_CauseOrType(
         # (a) Add grouped data by secondary_field
         grouped_output = {}
         for entry in result["grouped"]:
-            sec_label = entry["_id"]
-            labels = [x[group_by_field] for x in entry["sub_groups"]]
+            sec_label = entry["_id"].replace("FINPRO - ", "")
+            labels = [x[group_by_field].replace("FINPRO - ", "") for x in entry["sub_groups"]]
             data = [x["count"] for x in entry["sub_groups"]]
             grouped_output[sec_label] = {
                 "labels": labels,
@@ -574,7 +596,7 @@ async def aggregate_by_CauseOrType(
             }
 
         # (b) Add overall totals
-        all_labels = [doc[group_by_field] for doc in result[all_key]]
+        all_labels = [doc[group_by_field].replace("FINPRO - ", "") for doc in result[all_key]]
         all_data = [doc["count"] for doc in result[all_key]]
         grouped_output[all_key] = {
             "labels": all_labels,
@@ -598,16 +620,7 @@ async def aggregate_by_AffectedCountries(
     period: str = Query(default="1Y", description="Time period: e.g. '3M' for 3 months, '1Y' for 1 year")
 ):
     try:
-        # 1️⃣ Parse time period (e.g. '3M', '1Y')
-        now = datetime.now(timezone.utc)
-        if period.endswith("M"):
-            months = int(period[:-1])
-            start_date = now - relativedelta(months=months)
-        elif period.endswith("Y"):
-            years = int(period[:-1])
-            start_date = now - relativedelta(years=years)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+        start_date = process_date(period)
 
         # 2️⃣ Build MongoDB pipeline
         pipeline = [
@@ -655,6 +668,7 @@ async def aggregate_by_AffectedCountries(
             label = doc.get("Affected_Country") or "Unknown"
 
             toc = str(toc)
+            toc = toc.replace("FINPRO - ", "")
             cause = str(cause)
             label = str(label)
 
@@ -702,7 +716,10 @@ async def aggregate_by_AffectedCountries(
                 cause: {
                     "labels": ["Countries"],
                     "datasets": [
-                        {"label": x, "data": [y]} for x,y in zip(val["labels"], val["data"])
+                        {"label": x, 
+                         "data": [y], 
+                         "backgroundColor": random.choice(["#1E3A8A", "#60A5FA", "#1D8494", "#111F30", "#6366F1"])
+                        } for x,y in zip(val["labels"], val["data"])
                     ]
                 }
                 for cause, val in causes.items()
@@ -719,26 +736,13 @@ async def aggregate_by_AffectedCountries(
         raise HTTPException(status_code=500, detail=str(e))
     
 # 7. Aggregates cyber incident for Sankey Chart showing claim type & result
-import math
-import json
-from fastapi.responses import JSONResponse
-
 @router.get("/aggregateby_Claim_Sankey", response_description="Aggregate cyber incidents by Type of Claim & Result of Claim.")
 async def aggregate_by_Sankey(
     industry: str = Query(default="All Industries"),
     period: str = Query(default="1Y", description="Time period: e.g. '3M' or '1Y'")
 ):
     try:
-        # 1️⃣ Parse time period
-        now = datetime.now(timezone.utc)
-        if period.endswith("M"):
-            months = int(period[:-1])
-            start_date = now - relativedelta(months=months)
-        elif period.endswith("Y"):
-            years = int(period[:-1])
-            start_date = now - relativedelta(years=years)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
+        start_date = process_date(period)
 
         # 2️⃣ MongoDB pipeline
         pipeline = [
@@ -787,8 +791,10 @@ async def aggregate_by_Sankey(
 
         for doc in results:
             toc = str(doc.get("type_of_claim") or "Unknown")
+            toc = toc.replace("FINPRO - ", "")
             cause = str(doc.get("cause") or "Unknown")
             from_label = str(doc.get("from") or "Unknown")
+            from_label = from_label.replace("FINPRO - ", "")
             to_label = str(doc.get("to") or "Unknown")
             count = doc.get("count", 0)
 
@@ -848,4 +854,126 @@ async def aggregate_by_Sankey(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {e}")
+
+def sanitize_for_json(obj):
+    """
+    Recursively convert NaN, inf, -inf into None for safe JSON serialization.
+    Works for dicts, lists, and scalars.
+    """
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    return obj
+
+# 8. Aggregates cyber incident for Sankey Chart showing claim type & result
+@router.get("/aggregateby_IndivIncidents", response_description="Extract all the relevant incidents for that particular filter.")
+async def aggregate_by_ClaimIncidents(
+    industry: str = Query(default="All Industries"),
+    period: str = Query(default="1Y", description="Time period: e.g. '3M' or '1Y'"),
+    Cause: str = Query(default = "All Causes", description = "What causes this cyber incident"),
+    ClaimType: str = Query(default = "All Types", description = "What claim type was used")
+):
+    try:
+        start_date = process_date(period)
+
+        # Build the match conditions
+        match_conditions = [
+            {"Incident Date": {"$gte": start_date}},
+            {} if industry == "All Industries" else {"Industry": industry},
+            {} if Cause == "All Causes" else {"Cause": Cause}
+        ]
+
+        if ClaimType != "All Types":
+            # Match after removing "FINPRO -" prefix from the database field
+            match_conditions.append({
+                "$expr": {
+                    "$eq": [
+                        {
+                            "$trim": {
+                                "input": {
+                                    "$replaceAll": {
+                                        "input": "$Type of Claim",
+                                        "find": "FINPRO -",
+                                        "replacement": ""
+                                    }
+                                }
+                            }
+                        },
+                        ClaimType
+                    ]
+                }
+            })
+
+        # 2️⃣ MongoDB pipeline
+        pipeline = [
+            {
+                "$match": {
+                    "$and": match_conditions
+                }
+            },
+            { "$sort": { "Incident Date": -1 } },
+            { "$limit": 40 },
+            {
+                "$project": {
+                    "_id": 0,
+                    "Client": "$Client Name",
+                    "Industry": "$Industry",
+                    "Incident_Date": {
+                        "$cond": [
+                            { "$eq": [ { "$type": "$Incident Date" }, "missing" ] },
+                            None,
+                            { "$dateToString": { "format": "%Y-%m-%d", "date": "$Incident Date" } }
+                        ]
+                    },
+                    "Cause": "$Cause",
+                    "Claim_Type": {
+                        "$trim": {
+                            "input": {
+                                "$replaceAll": {
+                                    "input": "$Type of Claim",
+                                    "find": "FINPRO -",
+                                    "replacement": ""
+                                }
+                            }
+                        }
+                    },
+                    "Claim_SubType": "$Sub Type of Claim",
+                    "Marsh_Loss_Estimate_USD": { "$ifNull": ["$Marsh Loss Estimate (USD)", 0] },
+                    "Total_Paid_USD": { "$ifNull": ["$Total Paid (USD)", 0] },
+                    "Description": "$Brief Description of Incident",
+                    "Loss_Details": "$Loss Details",
+                    "Claim_Result": "$Claim Result",
+                    "Claim_Pos": "$Claim Position",
+                    "Total_Paid": { "$ifNull": ["$Total Paid", 0] },
+                    "Policy_Currency": "$Policy Currency"
+                }
+            }
+        ]
+
+        # 3️⃣ Run aggregation
+        cursor = DB.marsh_proprietary_data.aggregate(pipeline)
+        results = await cursor.to_list(length=None)
+        
+        results = sanitize_for_json(results)
+        if not results:
+            return JSONResponse(
+                content={"status": 200, "message": "No data found for selected filters.", "result": []},
+                media_type="application/json"
+            )
+
+        return JSONResponse(
+            content={
+                "status": 200,
+                "filters": {"industry": industry, "period": period},
+                "result": results
+            },
+            media_type="application/json"
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

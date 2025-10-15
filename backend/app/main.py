@@ -31,13 +31,14 @@ app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?grou
 
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_actors"])
 
-app.include_router(Marsh_post_router, prefix="/api", tags=["find_unqiue_ValueInCol"])
+app.include_router(Marsh_post_router, prefix="/api", tags=["unique_valueFOR"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregate_by_filters"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Claim_Coverage"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Loss_Estimate"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_CauseOrType"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_AffectedCountries"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Claim_Sankey"])
+app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_IndivIncidents"])
 
 app.include_router(query_router, prefix="/api")
 app.include_router(ppt_router, prefix="/api")

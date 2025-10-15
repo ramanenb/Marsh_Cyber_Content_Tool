@@ -1,33 +1,16 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-// @mui material components
-
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
-import CircularProgress from "@mui/material/CircularProgress";
-import Snackbar from "@mui/material/Snackbar";
-import MuiAlert from "@mui/material/Alert";
+import LinearProgress from "@mui/material/LinearProgress";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import DataTable from "examples/Tables/DataTable";
+import { useEffect } from "react";
 
 // state
 import { useState, useCallback } from "react";
@@ -36,6 +19,46 @@ function Repo() {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [mongoData, setMongoData] = useState([]);
+  const [uploadedFileLinks, setUploadedFileLinks] = useState([]);
+
+  //mongo Data
+  const fetchMongoData = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/get_prop_data/");
+      const result = await res.json();
+      console.log("Sample record from API:", result.data?.[0]);
+  
+      if (result.status === "success") {
+        setMongoData(result.data);
+      } else {
+        console.error("Error fetching MongoDB data:", result.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch MongoDB data:", err);
+    }
+  };
+
+  // s3 file links
+  const fetchUploadedFiles = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/list_uploaded_files/");
+      const result = await res.json();
+  
+      if (result.status === "success") {
+        setUploadedFileLinks(result.data);
+      } else {
+        console.error("Error fetching uploaded files:", result.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch uploaded files:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMongoData();
+    fetchUploadedFiles();
+  }, []);  
 
   // Handle dropped files
   const handleDrop = useCallback((e) => {
@@ -77,13 +100,10 @@ function Repo() {
       });
       const data = await res.json();
       console.log("Upload response:", data);
-      setSnackbar({
-          open: true,
-          message: "Uploaded successfully!",
-          color: "success",
-        });
       setSuccess(true); // indicate success
       setUploadedFiles([]); // clear uploaded files
+      await fetchMongoData(); // refresh data from MongoDB
+      await fetchUploadedFiles(); // refresh uploaded files list
     } catch (err) {
       console.error("Upload failed:", err);
       setSuccess(false);
@@ -91,12 +111,7 @@ function Repo() {
       setLoading(false); // stop loading
     }
   };
-  // snackbar feedback
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    color: "info",
-  });
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -182,41 +197,121 @@ function Repo() {
           )}
         </MDBox>
 
-        {uploadedFiles.length > 0 && (
-  <MDBox mt={2}>
-    <MDButton onClick={handleUpload} color="info" disabled={loading}sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      {loading && (
-        <CircularProgress size={18} color="inherit" thickness={5} />
 
-    )}
-      {loading ? "Uploading..." : "Process & Upload"}
-    </MDButton>
+        <MDBox mt={2}>
+          {uploadedFiles.length > 0 && (
+            <MDButton onClick={handleUpload} color="info" disabled={loading}>
+              {loading ? "Uploading..." : "Process & Upload"}
+            </MDButton>
+          )}
 
-    
+          {loading && (
+            <MDBox mt={1}>
+              <LinearProgress color="info" />
+            </MDBox>
+          )}
 
-    {success && (
-      <MDTypography variant="body2" color="success.main" mt={1}>
-        Upload successful!
-      </MDTypography>
-    )}
-  </MDBox>
-)}
+          {success && (
+            <MDTypography variant="body2" color="success.main" mt={1}>
+              Upload successful!
+            </MDTypography>
+          )}
+        </MDBox>
+
+        {mongoData.length > 0 && (
+        <MDBox mt={4}>
+          <MDTypography variant="h6" gutterBottom>
+            MongoDB Records
+          </MDTypography>
+          <DataTable
+            table={{
+              columns: [
+                { Header: "Claim Number", accessor: "_id" },
+                { Header: "Client Name", accessor: "Client Name" },
+                { Header: "Coverage", accessor: "Coverage" },
+                { Header: "Incident Date", accessor: "Incident Date" },
+                { Header: "Country", accessor: "Country (Set ID)" },
+                { Header: "Cause", accessor: "Cause" },
+                { Header: "Type of Claim", accessor: "Type of Claim" },
+                { Header: "Industry", accessor: "Industry" },
+                {
+                  Header: "Total Paid (USD)",
+                  accessor: "Total Paid (USD)",
+                  Cell: ({ value }) =>
+                    value !== undefined && value !== null
+                      ? value.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : "-",
+                },
+                { Header: "Claim Result", accessor: "Claim Result" },
+              ],
+              rows: mongoData.map((item) => {
+                console.log("Parsing date:", item["Incident Date"]);
+                const parsed = new Date(item["Incident Date"]);
+                console.log("Parsed result:", parsed);
+                return {
+                  ...item,
+                  "Incident Date": item["Incident Date"]
+                    ? parsed.toLocaleDateString()
+                    : "N/A",
+                };
+              }),
+            }}
+            isSorted={false}
+            entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
+            showTotalEntries={false}
+            noEndBorder
+          />
+        </MDBox>
+        )}
+
+        {uploadedFileLinks.length > 0 && (
+          <MDBox mt={6}>
+            <MDTypography variant="h6" gutterBottom>
+              Uploaded Proprietary Data Files
+            </MDTypography>
+            <DataTable
+              table={{
+                columns: [
+                  { Header: "File Name", accessor: "filename" },
+                  {
+                    Header: "Uploaded At",
+                    accessor: "uploaded_at",
+                    Cell: ({ value }) =>
+                      value
+                        ? new Date(value).toLocaleString()
+                        : "Unknown",
+                  },
+                  {
+                    Header: "Download Link",
+                    accessor: "url",
+                    Cell: ({ value }) => (
+                      <MDButton
+                        color="info"
+                        size="small"
+                        component="a"
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open
+                      </MDButton>
+                    ),
+                  },
+                ],
+                rows: uploadedFileLinks,
+              }}
+              isSorted={false}
+              entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
+              showTotalEntries={false}
+              noEndBorder
+            />
+          </MDBox>
+        )}
+
       </MDBox>
-      <Snackbar
-              open={snackbar.open}
-              autoHideDuration={8000} // disappears after 3 seconds
-              anchorOrigin={{ vertical: "top", horizontal: "right" }} // top center
-              onClose={() => setSnackbar({ ...snackbar, open: false })}
-            >
-              <MuiAlert
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
-                severity={snackbar.color} // 'success', 'error', 'info', 'warning'
-                variant="filled"
-                sx={{ width: "100%" }}
-              >
-                {snackbar.message}
-              </MuiAlert>
-            </Snackbar>
     </DashboardLayout>
   );
 }
