@@ -24,7 +24,7 @@ async def generate_presentation(request: PPTGenerationRequest):
     Generate PowerPoint presentation from incident data
     
     Args:
-        request: PPTGenerationRequest containing query, industries, region, and shotlisted articles
+        request: PPTGenerationRequest containing query, industries, region, and shortlisted articles
         
     Returns:
         PPTGenerationResponse with download URL and presentation details

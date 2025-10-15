@@ -12,10 +12,19 @@ from collections import OrderedDict
 import pandas as pd
 from typing import Any, Dict, List
 
-# Set up the evaluation model
+# Set up the evaluation model above: reasoning, below: no reasoning
+# evaluation_model = OpenAIModel(
+#     model="o4-mini-2025-04-16", # gpt-5-nano-2025-08-07
+#     temperature=1.0,
+#     timeout=60,
+#     request_timeout=45 
+# )
+
 evaluation_model = OpenAIModel(
-    model="gpt-5-nano-2025-08-07",
-    temperature=1.0,
+    model="gpt-4.1-nano-2025-04-14",
+    temperature=0,
+    timeout=60,
+    request_timeout=45 
 )
 
 # Hallucination evaluation setup
