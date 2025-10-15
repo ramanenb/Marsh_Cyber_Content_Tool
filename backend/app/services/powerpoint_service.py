@@ -11,7 +11,7 @@ import uuid
 import boto3
 import requests
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import shutil
 from pathlib import Path
 
@@ -140,6 +140,40 @@ def generate_presigned_url(s3_key: str, expiration: int = 3600) -> str:
     except Exception as e:
         print(f"Error generating presigned URL: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate download URL: {str(e)}")
+
+
+def list_pptx_with_urls(bucket_name=S3_BUCKET_NAME, prefix="generated/", expiration=604800):
+
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+    files = []
+
+    # If no files found
+    if "Contents" not in response:
+        return files
+
+    tz_sg = timezone(timedelta(hours=8))
+
+    for obj in response["Contents"]:
+        key = obj["Key"]
+        if key.endswith(".pptx"):
+            # Generate a presigned URL
+            presigned_url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket_name, "Key": key},
+                ExpiresIn=expiration,
+            )
+
+            files.append({
+                "filename": key.split("/")[-1],
+                "uploaded_at": obj["LastModified"].astimezone(tz_sg).isoformat(),
+                "url": presigned_url,
+            })
+
+    # Sort newest first (optional)
+    files.sort(key=lambda x: x["uploaded_at"], reverse=True)
+
+    return files
+
 
 # ==================== LOGO FUNCTIONS ====================
 async def search_company_domain(company_name: str) -> Optional[str]:

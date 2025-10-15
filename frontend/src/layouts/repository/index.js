@@ -21,6 +21,7 @@ function Repo() {
   const [success, setSuccess] = useState(false);
   const [mongoData, setMongoData] = useState([]);
   const [uploadedFileLinks, setUploadedFileLinks] = useState([]);
+  const [uploadedPptxLinks, setUploadedPptxLinks] = useState([]);
 
   //mongo Data
   const fetchMongoData = async () => {
@@ -55,9 +56,27 @@ function Repo() {
     }
   };
 
+  // pptx file links
+  const fetchUploadedPptxFiles = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/ppt/list_s3_ppt/");
+      const result = await res.json();
+      console.log("Fetched PPTX result:", result);
+
+      if (result.status === "success") {
+        setUploadedPptxLinks(result.data);
+      } else {
+        console.error("Error fetching uploaded pptx files:", result.message);
+      }
+    } catch (err) {
+      console.error("Failed to fetch uploaded pptx files:", err);
+    }
+  };
+
   useEffect(() => {
     fetchMongoData();
     fetchUploadedFiles();
+    fetchUploadedPptxFiles();
   }, []);  
 
   // Handle dropped files
@@ -259,9 +278,10 @@ function Repo() {
                 };
               }),
             }}
-            isSorted={false}
+            isSorted={true}
             entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
             showTotalEntries={false}
+            canSearch={true}
             noEndBorder
           />
         </MDBox>
@@ -302,6 +322,50 @@ function Repo() {
                   },
                 ],
                 rows: uploadedFileLinks,
+              }}
+              isSorted={false}
+              entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
+              showTotalEntries={false}
+              noEndBorder
+            />
+          </MDBox>
+        )}
+
+        {uploadedPptxLinks.length > 0 && (
+          <MDBox mt={6}>
+            <MDTypography variant="h6" gutterBottom>
+              Generated PPTX Files
+            </MDTypography>
+            <DataTable
+              table={{
+                columns: [
+                  { Header: "File Name", accessor: "filename" },
+                  {
+                    Header: "Uploaded At",
+                    accessor: "uploaded_at",
+                    Cell: ({ value }) =>
+                      value
+                        ? new Date(value).toLocaleString()
+                        : "Unknown",
+                  },
+                  {
+                    Header: "Download Link",
+                    accessor: "url",
+                    Cell: ({ value }) => (
+                      <MDButton
+                        color="info"
+                        size="small"
+                        component="a"
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open
+                      </MDButton>
+                    ),
+                  },
+                ],
+                rows: uploadedPptxLinks,
               }}
               isSorted={false}
               entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
