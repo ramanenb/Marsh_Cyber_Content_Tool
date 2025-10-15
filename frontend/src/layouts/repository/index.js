@@ -4,7 +4,9 @@ import MDTypography from "components/MDTypography";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
-import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -29,7 +31,7 @@ function Repo() {
       const res = await fetch("http://localhost:8000/api/get_prop_data/");
       const result = await res.json();
       console.log("Sample record from API:", result.data?.[0]);
-  
+
       if (result.status === "success") {
         setMongoData(result.data);
       } else {
@@ -45,7 +47,7 @@ function Repo() {
     try {
       const res = await fetch("http://localhost:8000/api/list_uploaded_files/");
       const result = await res.json();
-  
+
       if (result.status === "success") {
         setUploadedFileLinks(result.data);
       } else {
@@ -119,6 +121,11 @@ function Repo() {
       });
       const data = await res.json();
       console.log("Upload response:", data);
+      setSnackbar({
+        open: true,
+        message: "Uploaded successfully!",
+        color: "success",
+      });
       setSuccess(true); // indicate success
       setUploadedFiles([]); // clear uploaded files
       await fetchMongoData(); // refresh data from MongoDB
@@ -130,6 +137,22 @@ function Repo() {
       setLoading(false); // stop loading
     }
   };
+  // snackbar feedback
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    color: "info",
+  });
+
+  useEffect(() => {
+    if (snackbar.open) {
+      const timer = setTimeout(() => {
+        setSnackbar((prev) => ({ ...prev, open: false }));
+      }, 3000); // 3 seconds
+
+      return () => clearTimeout(timer); // cleanup if unmounted or snackbar closes early
+    }
+  }, [snackbar.open]);
 
   return (
     <DashboardLayout>
@@ -216,18 +239,12 @@ function Repo() {
           )}
         </MDBox>
 
-
         <MDBox mt={2}>
           {uploadedFiles.length > 0 && (
             <MDButton onClick={handleUpload} color="info" disabled={loading}>
+              {loading && <CircularProgress size={18} color="inherit" />}
               {loading ? "Uploading..." : "Process & Upload"}
             </MDButton>
-          )}
-
-          {loading && (
-            <MDBox mt={1}>
-              <LinearProgress color="info" />
-            </MDBox>
           )}
 
           {success && (
@@ -300,9 +317,7 @@ function Repo() {
                     Header: "Uploaded At",
                     accessor: "uploaded_at",
                     Cell: ({ value }) =>
-                      value
-                        ? new Date(value).toLocaleString()
-                        : "Unknown",
+                      value ? new Date(value).toLocaleString() : "Unknown",
                   },
                   {
                     Header: "Download Link",
@@ -376,6 +391,21 @@ function Repo() {
         )}
 
       </MDBox>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={8000} // disappears after 3 seconds
+        anchorOrigin={{ vertical: "top", horizontal: "right" }} // top center
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <MuiAlert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.color} // 'success', 'error', 'info', 'warning'
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </DashboardLayout>
   );
 }

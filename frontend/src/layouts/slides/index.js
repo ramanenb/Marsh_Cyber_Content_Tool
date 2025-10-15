@@ -79,6 +79,10 @@ function Slides() {
     "South America",
   ]);
 
+  //date data
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   //client context data
   const [clientContext, setClientContext] = useState("");
 
@@ -86,6 +90,21 @@ function Slides() {
   const [incidentsData, setIncidentsData] = useState([]);
   const [incidentColumns] = useState([
     { Header: "", accessor: "select", width: "5%", align: "center" },
+    {
+      Header: "Date",
+      accessor: "date",
+      width: "15%",
+      Cell: ({ value }) => {
+        if (!value || value === "NA") return "—";
+        const date = new Date(value);
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      },
+    },
+
     { Header: "company", accessor: "company", width: "15%", align: "left" },
     {
       Header: "Incident Details",
@@ -138,7 +157,20 @@ function Slides() {
 
       // `data.evaluated_articles` is the list you need to show in your table
       if (data && data.evaluated_articles) {
-        setIncidentsData(data.evaluated_articles);
+        // Sort incidents by date (newest first)
+        const sortedArticles = [...data.evaluated_articles].sort((a, b) => {
+          const dateA = new Date(a.date || 0);
+          const dateB = new Date(b.date || 0);
+          return dateB - dateA; // descending order
+        });
+        const filtered = sortedArticles.filter((item) => {
+          const itemDate = new Date(item.date);
+          if (startDate && itemDate < new Date(startDate)) return false;
+          if (endDate && itemDate > new Date(endDate)) return false;
+          return true;
+        });
+
+        setIncidentsData(filtered);
         setShowIncidents(true);
         setSelectedIncidents([]);
       } else {
@@ -448,6 +480,31 @@ function Slides() {
               </MenuItem>
             ))}
           </MDInput>
+        </MDBox>
+      </MDBox>
+      <MDBox px={3} pt={3}>
+        <MDTypography variant="h6">Select Date Range (Optional)</MDTypography>
+        <MDBox display="flex" gap={2} mt={1}>
+          <MDInput
+            type="date"
+            label="Start Date"
+            variant="outlined"
+            fullWidth
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 250 }}
+          />
+          <MDInput
+            type="date"
+            label="End Date"
+            variant="outlined"
+            fullWidth
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 250 }}
+          />
         </MDBox>
       </MDBox>
 
