@@ -62,7 +62,7 @@ class PPTGenerationRequest(BaseModel):
     query: str
     industries: Optional[List[str]] = []
     region: Optional[str] = ""
-    shotlisted_articles: List[ArticlePayload]
+    shortlisted_articles: List[ArticlePayload]
 
 class PPTGenerationResponse(BaseModel):
     success: bool
@@ -372,7 +372,7 @@ async def generate_powerpoint_presentation(request: PPTGenerationRequest) -> PPT
         
         # Build presentation
         await build_complete_presentation(
-            payload_list=request.shotlisted_articles,
+            payload_list=request.shortlisted_articles,
             template_path=template_path,
             output_path=output_path,
             temp_dir=temp_dir
@@ -385,7 +385,7 @@ async def generate_powerpoint_presentation(request: PPTGenerationRequest) -> PPT
             query=request.query,
             industries=request.industries,
             region=request.region,
-            articles_count=len(request.shotlisted_articles)
+            articles_count=len(request.shortlisted_articles)
         )
         
         # Generate presigned download URL (24 hours)
@@ -397,7 +397,7 @@ async def generate_powerpoint_presentation(request: PPTGenerationRequest) -> PPT
             presentation_id=presentation_id,
             download_url=download_url,
             expires_at=expires_at,
-            articles_processed=len(request.shotlisted_articles),
+            articles_processed=len(request.shortlisted_articles),
             message="Presentation generated successfully!"
         )
         

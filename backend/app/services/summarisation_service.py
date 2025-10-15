@@ -6,13 +6,13 @@ from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 
 # ---- Summarisation Model ----
-summarisation_llm = init_chat_model("gpt-4.1-nano-2025-04-14", model_provider="openai")
+summarisation_llm = init_chat_model("gpt-4.1-2025-nano-04-14", model_provider="openai") # gpt-4.1-2025-04-14
 
 # ---- Summarisation Prompt ----
 SUMMARISE_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
      "You are a cybersecurity client executive at a prestigious insurance brokerage firm. Your goal is to extract and summarise valuable information from articles to be presented to clients. Summarise the given article into STRICT JSON with keys:\n"
-     "executive_summary (<=700 chars), background (<=800), malicious_activity (<=800), outcomes_and_losses (<=800).\n"
+     "executive_summary (<=500 characters), background (<=1000 characters), malicious_activity (<=1000 characters), outcomes_and_losses (<=1500 characters).\n"
      "Rules: (1) No extra keys. (2) No markdown. (3) No line breaks inside values. (4) If unknown, write 'UNKNOWN'."),
     ("human", "Reference text:\n\n"
      """
