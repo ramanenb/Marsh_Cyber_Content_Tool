@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from app.services.powerpoint_service import (
     generate_powerpoint_presentation,
     get_presentation_info,
+    list_pptx_with_urls,
     PPTGenerationRequest,
     PPTGenerationResponse
 )
@@ -42,3 +43,11 @@ async def get_presentation_status(presentation_id: str):
         Dictionary with presentation details and download URL
     """
     return await get_presentation_info(presentation_id)
+
+@router.get("/ppt/list_s3_ppt/")
+async def list_uploaded_files():
+    try:
+        files = list_pptx_with_urls()
+        return {"status": "success", "data": files}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
