@@ -6,7 +6,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 
 # ---- Summarisation Model ----
-summarisation_llm = init_chat_model("gpt-4.1-2025-nano-04-14", model_provider="openai") # gpt-4.1-2025-04-14
+summarisation_llm = init_chat_model("gpt-4.1-nano-2025-04-14", model_provider="openai") # gpt-4.1-2025-04-14
 
 # ---- Summarisation Prompt ----
 SUMMARISE_PROMPT = ChatPromptTemplate.from_messages([
