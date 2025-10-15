@@ -140,11 +140,13 @@ function Slides() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: clientContext || "cyber incidents",
+          query: clientContext
+            ? `cyber incidents: ${clientContext}`
+            : "cyber incidents",
           industries:
             selectedIndustries.length > 0
               ? selectedIndustries
-              : ["All Industries"],
+              : [],
           region: newRegion || null,
         }),
       });
@@ -277,7 +279,9 @@ function Slides() {
       });
 
       const payload = {
-        query: clientContext || "cyber incidents",
+          query: clientContext
+            ? `cyber incidents: ${clientContext}`
+            : "cyber incidents",
         industries:
           selectedIndustries.length > 0
             ? selectedIndustries

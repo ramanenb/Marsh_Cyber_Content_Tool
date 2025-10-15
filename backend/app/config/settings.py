@@ -11,48 +11,40 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_mongodb import MongoDBAtlasVectorSearch
 from pymongo import MongoClient
 from openai import OpenAI
+from phoenix.otel import register
 
-## Load environment variables from /backend/.env
+# Load environment variables from /backend/.env
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # ==================== ARIZE PHOENIX OTEL TRACING ====================
 # Initialize Phoenix OpenTelemetry tracing for LangGraph observability
-from phoenix.otel import register
-
-tracer_provider = register(
-    project_name="langgraph-Marsh",
-    endpoint="https://app.phoenix.arize.com/s/capstonk18/v1/traces",
-    auto_instrument=True
-)
-print("✅ Arize Phoenix OTEL tracing initialized")
+def init_tracing():
+    tracer_provider = register(
+        project_name="langgraph-Marsh",
+        endpoint="https://app.phoenix.arize.com/s/capstonk18/v1/traces",
+        auto_instrument=True
+    )
+    print("✅ Arize Phoenix OTEL tracing initialized")
+    return tracer_provider
 
 # MongoDB settings
 MONGO_URL = os.getenv("MONGO_URL")
 client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000) # Used for non-blocking database operations e.g. dashboard
 pymongo_client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000) # Used for retrieval
 
-try:
-    # Ping the server
-    pymongo_client.admin.command("ping")
-    print("✅ Synchronous MongoDB connection successful")
-except Exception as e:
-    print("❌ Synchronous MongoDB connection failed:", e)
+async def init_mongo():
+    try:
+        pymongo_client.admin.command("ping")
+        print("✅ Synchronous MongoDB connection successful")
+    except Exception as e:
+        print("❌ Synchronous MongoDB connection failed:", e)
 
-async def test_async_connection():
     try:
         await client.admin.command("ping")
         print("✅ Async MongoDB connection successful")
     except Exception as e:
         print("❌ Async MongoDB connection failed:", e)
-
-# Run test
-loop = asyncio.get_event_loop()
-if loop.is_running():
-    # Use create_task if loop is already running
-    asyncio.create_task(test_async_connection())
-else:
-    loop.run_until_complete(test_async_connection())
 
 # Database and collections 
 DB_NAME = "DB"
