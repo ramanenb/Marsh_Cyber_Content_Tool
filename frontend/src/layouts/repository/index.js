@@ -21,7 +21,9 @@ import MDTypography from "components/MDTypography";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
-import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -75,6 +77,11 @@ function Repo() {
       });
       const data = await res.json();
       console.log("Upload response:", data);
+      setSnackbar({
+          open: true,
+          message: "Uploaded successfully!",
+          color: "success",
+        });
       setSuccess(true); // indicate success
       setUploadedFiles([]); // clear uploaded files
     } catch (err) {
@@ -84,7 +91,12 @@ function Repo() {
       setLoading(false); // stop loading
     }
   };
-
+  // snackbar feedback
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    color: "info",
+  });
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -172,15 +184,15 @@ function Repo() {
 
         {uploadedFiles.length > 0 && (
   <MDBox mt={2}>
-    <MDButton onClick={handleUpload} color="info" disabled={loading}>
+    <MDButton onClick={handleUpload} color="info" disabled={loading}sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      {loading && (
+        <CircularProgress size={18} color="inherit" thickness={5} />
+
+    )}
       {loading ? "Uploading..." : "Process & Upload"}
     </MDButton>
 
-    {loading && (
-      <MDBox mt={1}>
-        <LinearProgress color="info" />
-      </MDBox>
-    )}
+    
 
     {success && (
       <MDTypography variant="body2" color="success.main" mt={1}>
@@ -190,6 +202,21 @@ function Repo() {
   </MDBox>
 )}
       </MDBox>
+      <Snackbar
+              open={snackbar.open}
+              autoHideDuration={8000} // disappears after 3 seconds
+              anchorOrigin={{ vertical: "top", horizontal: "right" }} // top center
+              onClose={() => setSnackbar({ ...snackbar, open: false })}
+            >
+              <MuiAlert
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                severity={snackbar.color} // 'success', 'error', 'info', 'warning'
+                variant="filled"
+                sx={{ width: "100%" }}
+              >
+                {snackbar.message}
+              </MuiAlert>
+            </Snackbar>
     </DashboardLayout>
   );
 }
