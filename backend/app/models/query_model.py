@@ -4,7 +4,7 @@ from typing import Optional, List
 class IncidentRequest(BaseModel):
     query: str
     industries: List[str]
-    region: Optional[str]
+    region: Optional[str] = None
 
 class IncidentResponse(BaseModel):
     query: str

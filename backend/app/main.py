@@ -9,6 +9,7 @@ from app.routes.post_routes_Marshdata import router as Marsh_post_router
 from app.routes.query_routes import router as query_router
 from app.routes.ppt_routes import router as ppt_router
 from app.routes.data_upload_routes import router as data_upload_router
+from app.config.settings import init_mongo, init_tracing
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -44,3 +45,8 @@ app.include_router(query_router, prefix="/api")
 app.include_router(ppt_router, prefix="/api")
 
 app.include_router(data_upload_router, prefix="/api", tags=["upload_prop_data"])
+
+@app.on_event("startup")
+async def startup_event():
+    init_tracing()
+    await init_mongo()

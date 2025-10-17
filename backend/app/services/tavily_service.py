@@ -42,9 +42,14 @@ def tavily_search(args) -> str:
     query = args.query
     start_date = args.start_date
     end_date = args.end_date
-    #industries = args.industries
+    industries = args.industries
 
-    #print(f"[DEBUG tavily] query={query}, start_date={start_date}, end_date={end_date}")
+    # Add industries to query for better context
+    if industries and len(industries) > 0:
+        joined_industries = ", ".join(industries)
+        query = f"Industries: {joined_industries}. {query}"
+
+    print(f"[DEBUG tavily] query={query}, start_date={start_date}, end_date={end_date}")
     tavily = TavilySearch(
         max_results=5,
         topic="general",

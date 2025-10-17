@@ -40,7 +40,6 @@ def clean_webpage_text(raw_text: str, starts_at: str) -> str:
     return response.content.strip()
 
 async def extract_date_from_text(text: str) -> str | None:
-    print(text)
     """
     Extract the full incident date in ISO format (YYYY-MM-DDT00:00:00.000+00:00).
     If no incident date is available, extract the published date.
