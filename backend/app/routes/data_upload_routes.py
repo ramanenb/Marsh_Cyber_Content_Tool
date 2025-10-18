@@ -111,3 +111,27 @@ async def list_uploaded_files():
         return {"status": "success", "data": files}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+@router.post("/check_duplicates/")
+async def check_duplicates(file: UploadFile = File(...)):
+    try:
+        if file.filename.endswith(".xlsx"):
+            contents = await file.read()  # Read file bytes
+            df = pd.read_excel(BytesIO(contents))
+
+            if "Claim Number" not in df.columns:
+                raise HTTPException(status_code=400, detail="Missing 'Claim Number' column")
+
+            claim_numbers = df["Claim Number"].dropna().astype(str).tolist()
+
+            existing_claims = PROPRIETARY_COLLECTION.find(
+                {"_id": {"$in": claim_numbers}},
+                {"_id": 1}
+            )
+
+            duplicates = [doc["_id"] for doc in existing_claims]
+            return {"status": "success", "duplicates": duplicates}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
