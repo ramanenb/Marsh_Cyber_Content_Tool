@@ -6,6 +6,11 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import MDButton from "components/MDButton";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import MuiAlert from "@mui/material/Alert";
 
 // Material Dashboard 2 React example components
@@ -24,6 +29,9 @@ function Repo() {
   const [mongoData, setMongoData] = useState([]);
   const [uploadedFileLinks, setUploadedFileLinks] = useState([]);
   const [uploadedPptxLinks, setUploadedPptxLinks] = useState([]);
+  const [duplicates, setDuplicates] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingUploadData, setPendingUploadData] = useState(null);
 
   //mongo Data
   const fetchMongoData = async () => {
@@ -105,14 +113,39 @@ function Repo() {
 
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) return;
+  
+    const file = uploadedFiles[0];
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    try {
+      // Check for duplicates
+      const checkRes = await fetch("http://localhost:8000/api/check_duplicates/", {
+        method: "POST",
+        body: formData,
+      });
+  
+      const checkData = await checkRes.json();
+  
+      if (checkData.status === "success" && checkData.duplicates.length > 0) {
+        setDuplicates(checkData.duplicates);
+        setPendingUploadData(formData);
+        setConfirmOpen(true);
+        return; 
+      }
+  
+      // No duplicates go straight to upload
+      await performUpload(formData);
+  
+    } catch (err) {
+      console.error("Error checking duplicates:", err);
+    }
+  };
+
+  const performUpload = async (formData) => {
 
     setLoading(true);
     setSuccess(false);
-
-    const formData = new FormData();
-    uploadedFiles.forEach((file) => {
-      formData.append("file", file);
-    });
 
     try {
       const res = await fetch("http://localhost:8000/api/upload_prop_data/", {
@@ -121,22 +154,30 @@ function Repo() {
       });
       const data = await res.json();
       console.log("Upload response:", data);
-      setSnackbar({
-        open: true,
-        message: "Uploaded successfully!",
-        color: "success",
-      });
-      setSuccess(true); // indicate success
-      setUploadedFiles([]); // clear uploaded files
-      await fetchMongoData(); // refresh data from MongoDB
-      await fetchUploadedFiles(); // refresh uploaded files list
+
+      if (data.status == "success") {
+        setSnackbar({
+          open: true,
+          message: "Uploaded successfully!",
+          color: "success",
+        });
+        setSuccess(true); // indicate success
+        setUploadedFiles([]); // clear uploaded files
+        await fetchMongoData(); // refresh data from MongoDB
+        await fetchUploadedFiles(); // refresh uploaded files list
+      } else {
+        console.error("Upload failed:", data);
+        setSuccess(false);
+      }
     } catch (err) {
       console.error("Upload failed:", err);
-      setSuccess(false);
+      //setSuccess(false);
     } finally {
       setLoading(false); // stop loading
+      setConfirmOpen(false);
     }
   };
+
   // snackbar feedback
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -242,7 +283,7 @@ function Repo() {
         <MDBox mt={2}>
           {uploadedFiles.length > 0 && (
             <MDButton onClick={handleUpload} color="info" disabled={loading}>
-              {loading && <CircularProgress size={18} color="inherit" />}
+              {loading && <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />}
               {loading ? "Uploading..." : "Process & Upload"}
             </MDButton>
           )}
@@ -391,21 +432,52 @@ function Repo() {
         )}
 
       </MDBox>
+
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth>
+        <DialogTitle>Duplicate Claims Found</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Some claim numbers already exist in the database:
+            <br /><br />
+            {duplicates.slice(0, 5).join(", ")}
+            {duplicates.length > 5 && "..."}
+            <br /><br />
+            Do you want to overwrite them? This will replace any existing data for those claims.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <MDButton onClick={() => setConfirmOpen(false)}>Cancel</MDButton>
+          <MDButton
+            onClick={async () => {
+              setConfirmOpen(false);
+              await performUpload(pendingUploadData);
+            }}
+            color="error"
+            variant="contained">
+            Overwrite & Upload
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={8000} // disappears after 3 seconds
         anchorOrigin={{ vertical: "top", horizontal: "right" }} // top center
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
+        onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <MuiAlert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.color} // 'success', 'error', 'info', 'warning'
           variant="filled"
-          sx={{ width: "100%" }}
-        >
+          sx={{ width: "100%" }}>
           {snackbar.message}
         </MuiAlert>
       </Snackbar>
+
     </DashboardLayout>
   );
 }
