@@ -1,7 +1,7 @@
 /**
-=========================================================
-* End User Dashboard Page -- data taken from MARSH
-=========================================================
+=========================================================================
+* End User Dashboard Page -- data taken from MARSH propietary data source
+=========================================================================
 */
 
 // @mui material components
@@ -11,23 +11,20 @@ import Card from "@mui/material/Card";
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
-import MDBadge from "components/MDBadge";
-
-// Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/MarshDashboardNavbar";
+
+// Material Dashboard 2 React example components
 import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import DefaultDoughnutChart from "examples/Charts/DoughnutCharts/DefaultDoughnutChart";
 import HorizontalBarChart from "examples/Charts/BarCharts/HorizontalBarChart";
-
-// Material Data Table 2 React example components
 import DataTable from "examples/Tables/DataTable";
 import StackedBarChart from "examples/Charts/BarCharts/StackedBarChart/StackedBar";
 import RadarChart from "examples/Charts/RadarChart";
 import SankeyChart from "examples/Charts/SankeyChart/Sankey";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 // process JSON after it has been fetched
 function useFetchData(endpoint_link) {
@@ -44,119 +41,101 @@ function useFetchData(endpoint_link) {
       .then((resp) => {
         const pulled_data = resp?.result || resp?.industries || [];
         setData(pulled_data);
+        setLoading(false);
       })
-      .catch((err) => setError(err))
-      .finally(() => {console.log(endpoint_link); setLoading(false);});
+      .catch((err) => {setError(err); setLoading(false);})
+      .finally(() => 0);
   }, [endpoint_link]);
 
   return { data, loading, error };
 }
 
+// function to create the necessary variables for the FILTERS
+function useCreateFilterVariables({defaultValue, endpoint_link}) {
+  const [selectedOption, setSelectedOption] = useState(defaultValue);
+  const handleValueChange = (event) => setSelectedOption(event);
+
+  const { data, loading } = useFetchData(endpoint_link);
+  // re-render only when data or defaultValue changes. Add in default value w pulled data
+  let ALL_Values = useMemo(
+    () => [defaultValue, 
+          ...new Set(Object.values(data || {}))
+        ],
+    [data, defaultValue]
+  );
+
+  return { selectedOption, handleValueChange, ALL_Values, loading };
+}
+
 function MarshData_Dashboard() {
+  // ✅ Create FILTER variables
   const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
-  // Function to handle the Types selection change
-  const handleTimePeriodChange = (event) => {
-    setSelected_TimePeriod(event);
-  };
+  const handleTimePeriodChange = (event) => setSelected_TimePeriod(event);
 
-  /* HANDLE REQUIRED TO POPULATE THE TOPBAR FILTER DROPDOWN */
-  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
-  // Function to handle the industry selection change
-  const handleIndustryChange = (event) => {
-    setSelectedIndustry(event);
-  };
-  var {
-    data: Industries,
-    loading: loadingIndustry,
-  } = useFetchData("http://127.0.0.1:8000/api/getIndustries");
-  // Build Industry dropdown options safely
-  var ALL_IndustriesValues = [
-    "All Industries",
-    ...new Set(Object.values(Industries|| {})),
-  ];
+  // 2️. INDUSTRY FILTER
+  const { selectedOption: selectedIndustry, handleValueChange: handleIndustryChange,
+    ALL_Values: ALL_IndustriesValues, loadingValues: loadingIndustry,
+  } = useCreateFilterVariables({
+    defaultValue: "All Industries",
+    endpoint_link: "http://127.0.0.1:8000/api/getIndustries",
+  });
 
+  // 3️. CLAIM CAUSE FILTER
+  const { selectedOption: selected_ClaimCause, handleValueChange: handleClaimsCauseChange,
+    ALL_Values: ALL_ClaimCausesValues, loadingValues: loadingClaimCauses,
+  } = useCreateFilterVariables({
+    defaultValue: "All Causes",
+    endpoint_link: `http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
+  });
 
-  const [selected_ClaimCause, setSelected_ClaimCause] = useState("All Causes");
-  // Function to handle the Causes selection change
-  const handleClaimsCauseChange = (event) => {
-    setSelected_ClaimCause(event);
-  };
-  var {
-    data: ClaimCauses,
-    loading: loadingClaimCauses,
-  } = useFetchData(`http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause&period=${selected_TimePeriod}&industry=${selectedIndustry}`);
-  // Build Industry dropdown options safely
-  var ALL_ClaimCausesValues = [
-    "All Causes",
-    ...new Set(Object.values(ClaimCauses|| {})),
-  ];
-
-
-  const [selected_ClaimType, setSelected_ClaimType] = useState("All Types");
-  // Function to handle the Types selection change
-  const handleClaimsTypeChange = (event) => {
-    setSelected_ClaimType(event);
-  };
-  var {
-    data: ClaimTypes,
-    loading: loadingClaimType,
-  } = useFetchData(`http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim&period=${selected_TimePeriod}&industry=${selectedIndustry}`);
-  // Build Industry dropdown options safely
-  var ALL_ClaimTypeValues = [
-    "All Types",
-    ...new Set(Object.values(ClaimTypes|| {})),
-  ];
+  // 4️. CLAIM TYPE FILTER
+  const { selectedOption: selected_ClaimType, handleValueChange: handleClaimsTypeChange,
+    ALL_Values: ALL_ClaimTypeValues, loadingValues: loadingClaimType,
+  } = useCreateFilterVariables({
+    defaultValue: "All Types",
+    endpoint_link: `http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
+  });
 
   // ✅ Fetch datasets
   const {
-    data: incidentsByIndustry_TP_YearMonth,
-    loading: loadingYearMonth,
+    data: incidentsByIndustry_TP_YearMonth, loading: loadingYearMonth,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${0}`);
   const {
-    data: incidentsByIndustry_TP_Coverage,
-    loading: loadingCoverage,
+    data: incidentsByIndustry_TP_Coverage, loading: loadingCoverage,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Coverage?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
   const {
-    data: incidentsByIndustry_TPYearMonth_CHANGE,
-    loading: loadingYearMonth_Change,
+    data: incidentsByIndustry_TPYearMonth_CHANGE, loading: loadingYearMonth_Change,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${1}`);
   const {
-    data: incidentsByIndustry_TPY_LossEstimate,
-    loading: loadingYearMonth_LossEstimate,
+    data: incidentsByIndustry_TPY_LossEstimate, loading: loadingYearMonth_LossEstimate,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Loss_Estimate?industry=${selectedIndustry}&period=${selected_TimePeriod}&bins=${5}`);
   const {
-    data: incidentsByIndustry_TPY_Cause,
-    loading: loadingYearMonth_Cause,
+    data: incidentsByIndustry_TPY_Cause, loading: loadingYearMonth_Cause,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause`);
   const {
-    data: incidentsByIndustry_TPY_Types,
-    loading: loadingYearMonth_Types,
+    data: incidentsByIndustry_TPY_Types, loading: loadingYearMonth_Types,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
   const {
-    data: incidentsByIndustry_TPY_Countries,
-    loading: loadingYearMonsth_TPY_Countries
+    data: incidentsByIndustry_TPY_Countries, loading: loadingYearMonsth_TPY_Countries
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_AffectedCountries?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
   const {
-    data: incidentsByIndustry_TPY_Sankey,
-    loading: loadingYearMonsth_TPY_Sankey
+    data: incidentsByIndustry_TPY_Sankey, loading: loadingYearMonsth_TPY_Sankey
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Sankey?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
   const {
-    data: incidentsByIndustry_TPY,
-    loading: loadingYearMonsth_TPY
+    data: incidentsByIndustry_TPY, loading: loadingYearMonsth_TPY
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_IndivIncidents?industry=${selectedIndustry}&period=${selected_TimePeriod}&Cause=${selected_ClaimCause}&ClaimType=${selected_ClaimType}`);
-    const {
-    data: incidentsByIndustry_TPY_Cause_SumLoss,
-    loading: loadingYearMonth_Cause_SumLoss,
+  const {
+    data: incidentsByIndustry_TPY_Cause_SumLoss, loading: loadingYearMonth_Cause_SumLoss,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Sum_Loss`);
-    const {
-    data: incidentsByIndustry_TPY_Cause_AvgLoss,
-    loading: loadingYearMonth_Cause_AvgLoss,
+  const {
+    data: incidentsByIndustry_TPY_Cause_AvgLoss, loading: loadingYearMonth_Cause_AvgLoss,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Avg_Loss`);
+  
+  const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`http://127.0.0.1:8000/api/Marsh_Data`);
 
-  // PREP datapoints for the claims table at the very BOTTOM
+  // ✅ PREP structure of components for the claims table at the very BOTTOM
   const Author = ({ name, email }) => (
         <MDBox display="flex" alignItems="left" lineHeight={1}>
-          {/* <MDAvatar src={image} name={name} size="sm" /> */}
           <MDBox ml={0} lineHeight={1}>
             <MDTypography display="block" variant="button" fontWeight="medium">
               {name}
@@ -246,6 +225,16 @@ function MarshData_Dashboard() {
       }
     ));
 
+  // ✅ Filtered data for each charts for easier readability-passed into chart data & description param
+  var ClaimsOverTime_chData = incidentsByIndustry_TP_YearMonth?.[selected_ClaimType]?.[selected_ClaimCause]
+  var CoverageClaims_chData = incidentsByIndustry_TP_Coverage?.[selected_ClaimType]?.[selected_ClaimCause]
+  var ChangeInClaims_chData = incidentsByIndustry_TPYearMonth_CHANGE?.[selected_ClaimType]?.[selected_ClaimCause]
+  var CauseOfClaims_chData = incidentsByIndustry_TPY_Cause?.["Output"]?.[selected_ClaimType]
+  var TypesOfClaims_chData = incidentsByIndustry_TPY_Types?.["Output"]?.[selected_ClaimCause]
+  var AffectedCountries_chData = incidentsByIndustry_TPY_Countries?.[selected_ClaimType]?.[selected_ClaimCause]
+  var SumLossEsimate = incidentsByIndustry_TPY_Cause_SumLoss?.["Output"]?.[selected_ClaimType]
+
+  // ✅ Dashboard code starts here
   return (
     <DashboardLayout>
       {loadingYearMonth ? 
@@ -268,6 +257,7 @@ function MarshData_Dashboard() {
           selected_TimePeriod={selected_TimePeriod}
           ALL_TimePeriodValues={["3M", "6M", "1Y", "3Y", "5Y"]}
           onTimePeriod_FilterChange={handleTimePeriodChange}
+          latestIncidentDate={latestIncidentDate}
         />)
       }
 
@@ -281,7 +271,19 @@ function MarshData_Dashboard() {
                 <ReportsBarChart
                   color="secondary"
                   title="Claims over time"
-                  chart={incidentsByIndustry_TP_YearMonth?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
+                  chart={ClaimsOverTime_chData || { labels: [], datasets: [] }}
+                  description={`The highest number of claims recorded was in
+                      ${ClaimsOverTime_chData?.["labels"]?.at(
+                        ClaimsOverTime_chData?.["datasets"]?.["data"]?.indexOf(Math.max(...(ClaimsOverTime_chData?.["datasets"]?.["data"] || [0])))
+                      ) || "No Data"} with
+                      ${Math.max(...(ClaimsOverTime_chData?.["datasets"]?.["data"] || [0])) || "No Data"} claims.
+
+                      Average Monthly Claims is
+                      ${Math.round(
+                        ClaimsOverTime_chData?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0) /
+                        ClaimsOverTime_chData?.["datasets"]?.["data"]?.length
+                      ) || "No Data"}.
+                    `}
                 />
               </MDBox>
             </Grid>
@@ -291,7 +293,15 @@ function MarshData_Dashboard() {
                 <DefaultDoughnutChart
                   color="secondary"
                   title="Coverage of Claims"
-                  chart={incidentsByIndustry_TP_Coverage?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
+                  chart={CoverageClaims_chData || { labels: [], datasets: [] }}
+                  description={` 
+                      ${CoverageClaims_chData?.["labels"]?.at(0) || "No Data"} accounts for
+                      ${Math.round(
+                        100.0 * CoverageClaims_chData?.["datasets"]?.["data"]?.at(0) /
+                        CoverageClaims_chData?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)
+                        ) || "No Data"
+                      }% of the total at ${CoverageClaims_chData?.["datasets"]?.["data"]?.at(0) || "No Data"} Claims.
+                  `}
                 />
               </MDBox>
             </Grid>
@@ -308,9 +318,16 @@ function MarshData_Dashboard() {
                 <ReportsLineChart
                   color="secondary"
                   title="Change in Claims over Time"
-                  description="Note that periods used might not be consecutive"
-                  date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_TPYearMonth_CHANGE?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
+                  chart={ChangeInClaims_chData || { labels: [], datasets: [] }}
+                  description={` 
+                      ${Math.round(
+                        100.0 * (ClaimsOverTime_chData?.["datasets"]?.["data"]?.at(-1) - ClaimsOverTime_chData?.["datasets"]?.["data"]?.at(-2)) /
+                        ClaimsOverTime_chData?.["datasets"]?.["data"]?.at(-2)
+                        ) || "No Data"
+                      }%
+                      change from ${ClaimsOverTime_chData?.["datasets"]?.["data"]?.at(-2) || "No Data"} claims in ${ClaimsOverTime_chData?.["labels"].at(-2)} 
+                      to ${ClaimsOverTime_chData?.["datasets"]?.["data"]?.at(-1) || "No Data"} in ${ClaimsOverTime_chData?.["labels"].at(-1)} 
+                    `}
                 />                
               </MDBox>
             </Grid>
@@ -320,7 +337,7 @@ function MarshData_Dashboard() {
                 <ReportsBarChart
                   color="secondary"
                   title="Estimated Loss from Claims (USD)"
-                  description="In Thousands"
+                  description="Estimated loss distribution from claims by selected filters."
                   date="campaign sent 2 days ago"
                   chart={incidentsByIndustry_TPY_LossEstimate?.[selected_ClaimType]?.[selected_ClaimCause] || { labels: [], datasets: [] }}
                 />
@@ -340,7 +357,24 @@ function MarshData_Dashboard() {
                   color="secondary"
                   title="Cause of Claims"
                   date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_TPY_Cause?.["Output"]?.[selected_ClaimType] || { labels: [], datasets: [] }}
+                  chart={CauseOfClaims_chData || { labels: [], datasets: [] }}
+                  description={` 
+                      First 2 Causes accounts for
+                      ${Math.round(
+                        100.0 * CauseOfClaims_chData?.["datasets"]?.["data"]?.at(0) /
+                        CauseOfClaims_chData?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)
+                      ) || "No Data"
+                      }% 
+                       (${CauseOfClaims_chData?.["datasets"]?.["data"]?.at(0)})
+                      and 
+                      ${Math.round(
+                        100.0 * CauseOfClaims_chData?.["datasets"]?.["data"]?.at(1) /
+                        CauseOfClaims_chData?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)
+                      ) || "No Data"
+                      }% 
+                       (${CauseOfClaims_chData?.["datasets"]?.["data"]?.at(1)})
+                      respectively of total incidents
+                  `}
                 />                
               </MDBox>
             </Grid>
@@ -359,6 +393,15 @@ function MarshData_Dashboard() {
                     ],
                    }
                   }
+                  description={` 
+                      Most affected country is 
+                      ${(AffectedCountries_chData?.["datasets"][0]?.["label"] || "No Data")} with
+                      ${Math.round(100.0 * (AffectedCountries_chData?.["datasets"][0]?.["data"] || [0] || "No Data") /
+                        AffectedCountries_chData?.["datasets"].reduce((sum, b) => 
+                                                              sum + (b.data?.[0] || 0),0)
+                        )}% 
+                       (${(AffectedCountries_chData?.["datasets"][0]?.["data"] || [0]) || "No Data"}) claims.
+                  `}
                 />  
               </MDBox>
             </Grid>
@@ -372,19 +415,30 @@ function MarshData_Dashboard() {
 
             <Grid item xs={12} md={6} lg={4}>
               <MDBox mb={3}>
-                   <RadarChart 
-                   color="secondary"
-                   title="Types of Claims"
-                   chart= {{
-                      labels: incidentsByIndustry_TPY_Types?.["Output"]?.[selected_ClaimCause]?.["labels"],
-                      datasets: [
-                        {
-                          label: "No",
-                          data: incidentsByIndustry_TPY_Types?.["Output"]?.[selected_ClaimCause]?.["datasets"]?.["data"],
-                          borderColor: 'rgba(255, 99, 132, 1)'
-                        },
-                      ],
-                    }}/>       
+                <RadarChart 
+                  color="secondary"
+                  title="Types of Claims"
+                  chart= {{
+                    labels: TypesOfClaims_chData?.["labels"],
+                    datasets: [
+                      {
+                        label: "No",
+                        data: TypesOfClaims_chData?.["datasets"]?.["data"],
+                        borderColor: 'rgba(255, 99, 132, 1)'
+                      },
+                    ],
+                  }}
+                  description={` 
+                    Most Popular Claim Type is 
+                    ${TypesOfClaims_chData?.["labels"]?.at(
+                      TypesOfClaims_chData?.["datasets"]?.["data"]?.indexOf(Math.max(...(TypesOfClaims_chData?.["datasets"]?.["data"] || [0])))
+                    ) || "No Data"} with 
+                    ${(Math.max(...(TypesOfClaims_chData?.["datasets"]?.["data"] || [0])) || "No Data") /
+                      TypesOfClaims_chData?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0) * 100.0 || "No Data"}%
+                     (${(Math.max(...(TypesOfClaims_chData?.["datasets"]?.["data"] || [0])) || "No Data")})
+                    claims.
+                  `}
+                />       
               </MDBox>
             </Grid>
 
@@ -398,10 +452,10 @@ function MarshData_Dashboard() {
                            ...(incidentsByIndustry_TPY_Sankey?.[selected_ClaimType]?.[selected_ClaimCause]?.["data"] || []) 
                            ] 
                         }}
+                description = "This Sankey diagram illustrates the flow of Claim Type (left) to their Results (right)."
                 />
               </MDBox>
             </Grid>
-            
           </Grid>
         </MDBox>
 
@@ -413,9 +467,18 @@ function MarshData_Dashboard() {
               <MDBox mb={3}>
                 <HorizontalBarChart
                   color="secondary"
-                  title="Sum of Estimated Loss by Claim Cause"
+                  title="Sum of Estimated Loss (in Thousands) by Claim Cause"
                   date="campaign sent 2 days ago"
-                  chart={incidentsByIndustry_TPY_Cause_SumLoss?.["Output"]?.[selected_ClaimType] || { labels: [], datasets: [] }}
+                  chart={SumLossEsimate || { labels: [], datasets: [] }}
+                  description={` 
+                      Total Estimated Loss is 
+                      $${Math.round(SumLossEsimate?.["datasets"]?.["data"]?.reduce((a, b) => a + b, 0)) || "No Data"}K
+                      with highest loss from
+                      ${SumLossEsimate?.["labels"]?.at(
+                        SumLossEsimate?.["datasets"]?.["data"]?.indexOf(Math.max(...(SumLossEsimate?.["datasets"]?.["data"] || [0])))
+                      ) || "No Data"} at
+                      $${Math.round(Math.max(...(SumLossEsimate?.["datasets"]?.["data"] || [0]))) || "No Data"}K.
+                  `}
                 />                
               </MDBox>
             </Grid>
@@ -424,9 +487,10 @@ function MarshData_Dashboard() {
               <MDBox mb={3}>
                 <HorizontalBarChart
                   color="secondary"
-                  title="Avg of Estimated Loss by Claim Cause"
+                  title="Avg of Estimated Loss (in Thousands) by Claim Cause (USD)"
                   date="campaign sent 2 days ago"
                   chart={incidentsByIndustry_TPY_Cause_AvgLoss?.["Output"]?.[selected_ClaimType] || { labels: [], datasets: [] }}
+                  description={"Data shows the average estimated loss (USD in thousands) for each claim in claim cause."}
                 />  
               </MDBox>
             </Grid>

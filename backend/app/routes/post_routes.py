@@ -20,6 +20,11 @@ def process_date(period: str):
         raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
     return start_date
 
+@router.get("/Internet_Data", response_description="Find latest Interent Data Incident Date")
+async def get_marsh_data_update():
+    doc = await DB.europec_maryland_test.find_one({}, sort=[("event_date", -1)])
+    return {"result" : doc.get("event_date")} if doc else None
+
 @router.get("/list_incidents", response_description="List latest cyber incidents")
 async def get_latest_incidents_by_industry(
     industry: str = Query(..., description="Industry name or 'All Industries'"),

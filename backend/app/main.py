@@ -23,15 +23,21 @@ app.add_middleware(
 
 # add posts router
 # REQUEST URL ->  http://127.0.0.1:8000/api/list_incidents
+app.include_router(query_router, prefix="/api")
+app.include_router(ppt_router, prefix="/api")
+
+app.include_router(data_upload_router, prefix="/api", tags=["upload_prop_data"])
+
+# Internet Data Related Pulls
 app.include_router(post_router, prefix="/api", tags=["incidents"])
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_month"])
-
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?group_by_field=event_subtype"])
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?group_by_field=affected_country"])
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry?group_by_field=motive"])
-
 app.include_router(post_router, prefix="/api", tags=["aggregate_by_industry_and_actors"])
+app.include_router(post_router, prefix="/api", tags=["Internet_Data"])
 
+# Marsh Data Related Pulls
 app.include_router(Marsh_post_router, prefix="/api", tags=["unique_valueFOR"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregate_by_filters"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Claim_Coverage"])
@@ -40,11 +46,7 @@ app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_CauseOrT
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_AffectedCountries"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_Claim_Sankey"])
 app.include_router(Marsh_post_router, prefix="/api", tags=["aggregateby_IndivIncidents"])
-
-app.include_router(query_router, prefix="/api")
-app.include_router(ppt_router, prefix="/api")
-
-app.include_router(data_upload_router, prefix="/api", tags=["upload_prop_data"])
+app.include_router(Marsh_post_router, prefix="/api", tags=["Marsh_Data"])
 
 @app.on_event("startup")
 async def startup_event():

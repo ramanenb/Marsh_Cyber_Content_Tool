@@ -65,7 +65,7 @@ function DashboardNavbar({ absolute, light, isMini,
                             selected_ClaimCause, ALL_ClaimsCauseValues, onCause_FilterChange,
                             selected_ClaimType, ALL_ClaimsTypeValues, onType_FilterChange,
                             selected_TimePeriod, ALL_TimePeriodValues, onTimePeriod_FilterChange,
-                            dashboardView = false }) {
+                            dashboardView = false, latestIncidentDate = "No Data" }) {
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
@@ -135,7 +135,7 @@ function DashboardNavbar({ absolute, light, isMini,
           }}
         />
       }
-      <NotificationItem icon={<EventRepeatIcon />} title="Data Updated as of: 15th Sep 2025" />
+      <NotificationItem icon={<EventRepeatIcon />} title={`Latest Claim Date: ${latestIncidentDate.slice(0,10)}`} />
     </Menu>
   );
 

@@ -12,16 +12,13 @@ import Card from "@mui/material/Card";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDBadge from "components/MDBadge";
-
-// Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/ActualDashboardNavbar";
+
 import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import DefaultDoughnutChart from "examples/Charts/DoughnutCharts/DefaultDoughnutChart";
 import HorizontalBarChart from "examples/Charts/BarCharts/HorizontalBarChart";
-
-// Material Data Table 2 React example components
 import DataTable from "examples/Tables/DataTable";
 
 import { useState, useEffect } from "react";
@@ -43,7 +40,7 @@ function useFetchData(endpoint_link) {
         setData(pulled_data);
       })
       .catch((err) => setError(err))
-      .finally(() => {console.log("Failed"); setLoading(false);});
+      .finally(() => {setLoading(false);});
   }, [endpoint_link]);
 
   return { data, loading, error };
@@ -52,26 +49,21 @@ function useFetchData(endpoint_link) {
 function Dashboard() {
   const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
   // Function to handle the Types selection change
-  const handleTimePeriodChange = (event) => {
-    setSelected_TimePeriod(event);
-  };
+  const handleTimePeriodChange = (event) => setSelected_TimePeriod(event);
 
   const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
+  // Function to handle the industry selection change
+  const handleIndustryChange = (event) => setSelectedIndustry(event);
 
   // ✅ Fetch datasets
   const {
     data: incidentsByIndustryYearMonth,
     loading: loadingYearMonth,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry_and_month?period=${selected_TimePeriod}`);
-
   // Build Industry dropdown options safely
   const ALL_IndustryValues = [
     ...new Set(Object.keys(incidentsByIndustryYearMonth || {})),
   ];
-  // Function to handle the industry selection change
-  const handleIndustryChange = (event) => {
-    setSelectedIndustry(event);
-  }
 
   const {
     data: incidentsByIndustry_EventSubtype,
@@ -88,13 +80,13 @@ function Dashboard() {
     loading: loadingActor,
   } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry_and_actors?period=${selected_TimePeriod}`);
 
-  /* Code Needed to generate the TABLE at the bottom */
+  /* ✅ Code Needed to generate the TABLE at the bottom */
   const {
-    data: Incidents,
-    loading: loadingIncidents,
-    error: errorIncidents
+    data: Incidents, loading: loadingIncidents, error: errorIncidents
   } = useFetchData(`http://127.0.0.1:8000/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}&period=${selected_TimePeriod}`);
 
+  const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`http://127.0.0.1:8000/api/Internet_Data`);
+  
   const columns = [
       { Header: "Victim", accessor: "Victim", width: "45%", align: "left"},
       { Header: "Industry", accessor: "Industry", align: "left" },
@@ -191,6 +183,7 @@ function Dashboard() {
           selected_TimePeriod={selected_TimePeriod}
           ALL_TimePeriodValues={["1Y", "3Y", "5Y"]}
           onTimePeriod_FilterChange={handleTimePeriodChange}
+          latestIncidentDate={latestIncidentDate}
         />)
       }
 

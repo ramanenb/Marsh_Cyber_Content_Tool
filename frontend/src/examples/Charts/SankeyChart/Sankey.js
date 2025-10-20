@@ -8,7 +8,7 @@ import MDTypography from "components/MDTypography";
 // configs
 import configs from "./Config/SankeyConfig";
 
-export default function SankeyChart({ color, chart, title }) {
+export default function SankeyChart({ color, chart, title, description }) {
   const { options } = configs();
 
   const chartMemo = useMemo(
@@ -43,6 +43,14 @@ export default function SankeyChart({ color, chart, title }) {
         <MDBox pt={3} textAlign="center">
           <MDTypography variant="h6" textTransform="capitalize">
             {title}
+          </MDTypography>
+          <MDTypography
+            component="div"
+            variant="button"
+            color="text"
+            fontWeight="light"
+          >
+            {description}
           </MDTypography>
         </MDBox>
       </MDBox>

@@ -62,7 +62,8 @@ import PublicIcon from '@mui/icons-material/Public';
 
 function DashboardNavbar({ absolute, light, isMini, 
     Selected_Industry, ALL_IndustryValues, onIndustry_FilterChange, 
-    selected_TimePeriod, ALL_TimePeriodValues, onTimePeriod_FilterChange, dashboardView = false }) {
+    selected_TimePeriod, ALL_TimePeriodValues, onTimePeriod_FilterChange, 
+    dashboardView = false, latestIncidentDate = "No Data" }) {
 
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
@@ -133,7 +134,7 @@ function DashboardNavbar({ absolute, light, isMini,
           }}
         />
       }
-      <NotificationItem icon={<EventRepeatIcon />} title="Data Updated as of: 15th Sep 2025" />
+      <NotificationItem icon={<EventRepeatIcon />} title={`Latest Incident Date: ${latestIncidentDate.slice(0,10)}`} />
     </Menu>
   );
 

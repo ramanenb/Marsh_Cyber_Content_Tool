@@ -13,6 +13,14 @@ import math
 import json
 from fastapi.responses import JSONResponse
 
+def money_format_value(val):
+    if val >= 1_000_000:
+        return f"{val/1_000_000:.2f}M"
+    elif val >= 1_000:
+        return f"{int(val/1_000)}K"
+    else:
+        return f"{int(val)}"
+    
 def process_date(period: str):
     # 1️⃣ Parse time period (e.g. '3M', '1Y')
     now = datetime.now(timezone.utc)
@@ -25,6 +33,11 @@ def process_date(period: str):
     else:
         raise HTTPException(status_code=400, detail="Invalid period format. Use '3M' or '1Y'.")
     return start_date
+
+@router.get("/Marsh_Data", response_description="Find latest Marsh Data Claim Date")
+async def get_marsh_data_update():
+    doc = await DB.marsh_proprietary_data.find_one({}, sort=[("Incident Date", -1)])
+    return {"result" : doc.get("Incident Date")} if doc else None
 
 @router.get("/unique_valueFOR", response_description="Find unique values for cause or claim type col")
 async def find_unique(
@@ -394,8 +407,6 @@ async def aggregate_by_Loss_Estimate(
         grouped_data = defaultdict(lambda: defaultdict(list))
         # Structure: grouped_data[type_of_claim][cause] = [loss_estimate1, loss_estimate2, ...]
         
-        all_loss_estimates = []  # For calculating global min/max
-        
         for doc in results:
             try:
                 value = doc.get("loss_estimate")
@@ -409,20 +420,11 @@ async def aggregate_by_Loss_Estimate(
                 grouped_data[toc]["All Causes"].append(loss_value)
                 grouped_data["All Types"][cause].append(loss_value)
                 grouped_data["All Types"]["All Causes"].append(loss_value)
-                all_loss_estimates.append(loss_value)
                 
             except (ValueError, TypeError, AttributeError):
                 continue
         
-        if not all_loss_estimates:
-            return {"status": 200, "message": "No valid loss estimate data found.", "result": {}}
-
-        # 5️. Calculate global min/max for consistent bin ranges across all histograms
-        global_min = np.round(min(all_loss_estimates), 0)
-        global_max = np.round(max(all_loss_estimates), 0)
-        bin_edges = np.round(np.linspace(global_min, global_max, bins + 1),0)
-        
-        # 6. Create histograms for each Type of Claim and Cause combination
+        # 5. Create histograms for each Type of Claim and Cause combination
         response = {}
         
         for toc, causes in grouped_data.items():
@@ -431,40 +433,27 @@ async def aggregate_by_Loss_Estimate(
             for cause, loss_values in causes.items():
                 if not loss_values:
                     continue
+
+                # 6. Calculate local min/max for each histogram
+                local_min = np.round(min(loss_values), 0)
+                local_max = np.round(max(loss_values), 0)
+                bin_edges = np.round(np.linspace(local_min, local_max, bins + 1),0)
                 
                 # Calculate histogram for this specific group
                 hist_counts, _ = np.histogram(loss_values, bins=bin_edges)
                 
-                # Format bin labels
+                # Format bin labels for start_label to end_label
                 bin_labels = []
-                for i in range(len(bin_edges) - 1):
-                    start_label = round(bin_edges[i]/1000,0)
-                    end_label = round(bin_edges[i + 1]/1000,0)
-                    bin_labels.append(f"{start_label}K-{end_label}K")
+                bin_labels = [f"{money_format_value(bin_edges[i])}-{money_format_value(bin_edges[i+1])}" 
+                    for i in range(len(bin_edges) - 1)]
                 
                 # Store histogram data for this group
                 response[toc][cause] = {
                     "labels": bin_labels,
                     "datasets": {
                         "data": hist_counts.tolist()
-                        # "bin_edges": bin_edges.tolist(),
-                        # "total_records": len(loss_values),
-                        # "min": float(min(loss_values)),
-                        # "max": float(max(loss_values)),
-                        # "mean": float(np.mean(loss_values)),
-                        # "median": float(np.median(loss_values))
                     }
                 }
-        
-        # # 7️⃣ Add global statistics
-        # global_stats = {
-        #     "total_records": len(all_loss_estimates),
-        #     "min": global_min,
-        #     "max": global_max,
-        #     "mean": float(np.mean(all_loss_estimates)),
-        #     "median": float(np.median(all_loss_estimates)),
-        #     "unique_types": len(response)
-        # }
 
         return {
             "status": 200,
@@ -586,7 +575,10 @@ async def aggregate_by_CauseOrType(
         for entry in result["grouped"]:
             sec_label = entry["_id"].replace("FINPRO - ", "")
             labels = [x[group_by_field].replace("FINPRO - ", "") for x in entry["sub_groups"]]
-            data = [x["count"] for x in entry["sub_groups"]]
+            data = [round(
+                    (0.001 if aggregation_method in ["Sum_Loss", "Avg_Loss"] else 1.0) *
+                    x["count"],1) for x in entry["sub_groups"] ]
+
             grouped_output[sec_label] = {
                 "labels": labels,
                 "datasets": {
@@ -597,7 +589,10 @@ async def aggregate_by_CauseOrType(
 
         # (b) Add overall totals
         all_labels = [doc[group_by_field].replace("FINPRO - ", "") for doc in result[all_key]]
-        all_data = [doc["count"] for doc in result[all_key]]
+        all_data = [round(
+                (0.001 if aggregation_method in ["Sum_Loss", "Avg_Loss"] else 1.0) *
+                doc["count"],1) for doc in result[all_key]]
+        
         grouped_output[all_key] = {
             "labels": all_labels,
             "datasets": {
