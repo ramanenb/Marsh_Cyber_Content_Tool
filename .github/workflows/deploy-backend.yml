@@ -13,15 +13,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Test workflow trigger
+      run: |
+        echo "Workflow triggered successfully!"
+        echo "Branch: ${{ github.ref }}"
+        echo "Changed files in backend detected"
+    
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: ${{ secrets.EC2_HOST  || 'placeholder'  }}
-        username: ${{ secrets.EC2_USERNAME || 'placeholder' }}
-        key: ${{ secrets.EC2_PRIVATE_KEY || 'placeholder' }}
+        host: ${{ secrets.EC2_HOST || 'placeholder-host' }}
+        username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
+        key: ${{ secrets.EC2_PRIVATE_KEY || 'placeholder-key' }}
         port: 22
         script: |
           curl -sSL https://raw.githubusercontent.com/ramanenb/Marsh_Cyber_Content_Tool/frontend/deployment/deploy-backend.sh -o /tmp/deploy-backend.sh
           chmod +x /tmp/deploy-backend.sh
           /tmp/deploy-backend.sh
       continue-on-error: true
+    
+    - name: Workflow status
+      run: |
+        echo "Workflow completed"
+        echo "Add secrets to enable actual deployment"
