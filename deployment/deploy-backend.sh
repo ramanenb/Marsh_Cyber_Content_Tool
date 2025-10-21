@@ -144,6 +144,7 @@ User=ubuntu
 WorkingDirectory=/home/ubuntu/Marsh_Cyber_Content_Tool/backend
 Environment=PATH=/home/ubuntu/Marsh_Cyber_Content_Tool/backend/venv/bin
 Environment=PYTHONPATH=/home/ubuntu/Marsh_Cyber_Content_Tool/backend
+Environment=ENVIRONMENT=UAT
 ExecStart=/home/ubuntu/Marsh_Cyber_Content_Tool/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=3

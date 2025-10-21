@@ -18,6 +18,7 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import DataTable from "examples/Tables/DataTable";
 import { useEffect } from "react";
+import { fetchWithFallback } from "utils/apiConfig";
 
 // state
 import { useState, useCallback } from "react";
@@ -36,7 +37,7 @@ function Repo() {
   //mongo Data
   const fetchMongoData = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/get_prop_data/");
+      const res = await fetchWithFallback("/api/get_prop_data/");
       const result = await res.json();
       console.log("Sample record from API:", result.data?.[0]);
 
@@ -53,7 +54,7 @@ function Repo() {
   // s3 file links
   const fetchUploadedFiles = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/list_uploaded_files/");
+      const res = await fetchWithFallback("/api/list_uploaded_files/");
       const result = await res.json();
 
       if (result.status === "success") {
@@ -69,7 +70,7 @@ function Repo() {
   // pptx file links
   const fetchUploadedPptxFiles = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/ppt/list_s3_ppt/");
+      const res = await fetchWithFallback("/api/ppt/list_s3_ppt/");
       const result = await res.json();
       console.log("Fetched PPTX result:", result);
 
@@ -120,7 +121,7 @@ function Repo() {
   
     try {
       // Check for duplicates
-      const checkRes = await fetch("http://localhost:8000/api/check_duplicates/", {
+      const checkRes = await fetchWithFallback("/api/check_duplicates/", {
         method: "POST",
         body: formData,
       });
@@ -148,7 +149,7 @@ function Repo() {
     setSuccess(false);
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload_prop_data/", {
+      const res = await fetchWithFallback("/api/upload_prop_data/", {
         method: "POST",
         body: formData,
       });
