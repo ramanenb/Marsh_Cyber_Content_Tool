@@ -77,6 +77,7 @@ async def fetch_full_text_async(url: str, starts_at: str) -> str:
     """Async load full article text using WebBaseLoader."""
     BLOCKED_DOMAINS = [
         "darkreading.com",
+        "stniiomyjliimcgkvdszvgen3eaaoz55hreqqx6o77yvmpwt7gklffqd.onion"
     ]
     print(f"Fetching url: {url}")
     domain = urlparse(url).netloc.lower()
