@@ -5,7 +5,7 @@ class PipelineState(TypedDict):
     industries: List[str]
     region: str
     keywords: str
-    start_date: str
+    start_date: Optional[str]
     end_date: Optional[str]
     retrieved_docs: List
     news_articles: List

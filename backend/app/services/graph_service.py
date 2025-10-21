@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from app.models.query_model import IncidentRequest, IncidentResponse
 from app.models.pipeline_model import PipelineState
 from app.services.extract_service import extract_query_params
@@ -10,16 +11,16 @@ from app.services.tavily_service import tavily_search
 from langgraph.graph import StateGraph, START, END
 
 def extract_node(state: dict):
-    """Extract keywords and optionally date range from user query"""
+    """Extract keywords from user query"""
     query = state["query"]
-    industries = state.get("industries", [])
-    params = extract_query_params(llm, query)
+    keywords = extract_query_params(llm, query)
 
     return {
-        "keywords": params["keywords"],
-        "start_date": params.get("start_date"),
-        "end_date": params.get("end_date"),
-        "industries": industries,
+        "keywords": keywords,
+        "start_date": state.get("start_date"),
+        "end_date": state.get("end_date"),
+        "industries": state.get("industries"),
+        "region": state.get("region")
     }
 
 def retriever_node(state: dict):
@@ -109,15 +110,23 @@ workflow.add_edge("evaluate", END)
 graph = workflow.compile()
 
 async def run_graph(request: IncidentRequest) -> IncidentResponse:
-    results = await graph.ainvoke({
-        "query": request.query,
-        "industries": request.industries,
-        "region": request.region
-    })
+    try:
+        results = await graph.ainvoke({
+            "query": request.query,
+            "industries": request.industries,
+            "region": request.region,
+            "start_date": request.startDate,
+            "end_date": request.endDate
+        })
 
-    return IncidentResponse(
-        query=results["query"],
-        industries=results.get("industries"),
-        region=results.get("region"),
-        evaluated_articles=results.get("evaluated_articles")
-    )
+        return IncidentResponse(
+            query=results["query"],
+            industries=results.get("industries"),
+            region=results.get("region"),
+            evaluated_articles=results.get("evaluated_articles")
+        )
+
+    except Exception as e:
+        print(f"[ERROR] Failed to run graph: {e}")
+        # Optionally re-raise or return a fallback response
+        raise HTTPException(status_code=500, detail=f"Graph execution failed: {e}")

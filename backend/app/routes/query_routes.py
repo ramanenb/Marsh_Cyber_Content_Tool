@@ -17,6 +17,7 @@ async def get_industries():
 @router.post("/getIncidents", response_model=IncidentResponse)
 async def get_incidents(request: IncidentRequest):
     try:
+        print("DEBUG request:", request)
         return await run_graph(request)
 
     except Exception as e:

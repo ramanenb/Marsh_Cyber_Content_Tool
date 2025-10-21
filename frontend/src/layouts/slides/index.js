@@ -148,6 +148,8 @@ function Slides() {
               ? selectedIndustries
               : [],
           region: newRegion || null,
+          startDate: startDate || null,
+          endDate: endDate || null,
         }),
       });
 
@@ -210,6 +212,7 @@ function Slides() {
           }}
         />
       ),
+      date: item.date, // add date field for the Date column
       company: item.affected_organization || "N/A",
       executive_summary: truncateText(item.executive_summary, 5),
       hallucination_classification:
