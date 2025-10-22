@@ -66,7 +66,7 @@ function useCreateFilterVariables({defaultValue, endpoint_link}) {
 }
 
 function MarshData_Dashboard() {
-  // ✅ Create FILTER variables
+  // Create FILTER variables
   const [selected_TimePeriod, setSelected_TimePeriod] = useState("1Y");
   const handleTimePeriodChange = (event) => setSelected_TimePeriod(event);
 
@@ -94,7 +94,7 @@ function MarshData_Dashboard() {
     endpoint_link: `/api/unique_valueFOR?group_by_field=Type%20of%20Claim&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
   });
 
-  // ✅ Fetch datasets
+  // Fetch datasets
   const {
     data: incidentsByIndustry_TP_YearMonth, loading: loadingYearMonth,
   } = useFetchData(`/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${0}`);
@@ -131,7 +131,7 @@ function MarshData_Dashboard() {
   
   const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`/api/Marsh_Data`);
 
-  // ✅ PREP structure of components for the claims table at the very BOTTOM
+  // PREP structure of components for the claims table at the very BOTTOM
   const Author = ({ name, email }) => (
         <MDBox display="flex" alignItems="left" lineHeight={1}>
           <MDBox ml={0} lineHeight={1}>
@@ -223,7 +223,7 @@ function MarshData_Dashboard() {
       }
     ));
 
-  // ✅ Filtered data for each charts for easier readability-passed into chart data & description param
+  // Filtered data for each charts for easier readability-passed into chart data & description param
   var ClaimsOverTime_chData = incidentsByIndustry_TP_YearMonth?.[selected_ClaimType]?.[selected_ClaimCause]
   var CoverageClaims_chData = incidentsByIndustry_TP_Coverage?.[selected_ClaimType]?.[selected_ClaimCause]
   var ChangeInClaims_chData = incidentsByIndustry_TPYearMonth_CHANGE?.[selected_ClaimType]?.[selected_ClaimCause]
@@ -232,7 +232,7 @@ function MarshData_Dashboard() {
   var AffectedCountries_chData = incidentsByIndustry_TPY_Countries?.[selected_ClaimType]?.[selected_ClaimCause]
   var SumLossEsimate = incidentsByIndustry_TPY_Cause_SumLoss?.["Output"]?.[selected_ClaimType]
 
-  // ✅ Dashboard code starts here
+  // Dashboard code starts here
   return (
     <DashboardLayout>
       {loadingYearMonth ? 

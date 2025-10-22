@@ -1,4 +1,4 @@
-const EC2_BASE_URL = 'http://54.169.177.182';
+const EC2_BASE_URL = 'https://marsh-cyber-content-tool-api.me';
 const LOCAL_BASE_URL = 'http://127.0.0.1:8000';
 
 let currentBaseUrl = EC2_BASE_URL;

@@ -793,11 +793,11 @@ async def aggregate_by_Sankey(
             to_label = str(doc.get("to") or "Unknown")
             count = doc.get("count", 0)
 
-            # ✅ Sanitize count
+            # Sanitize count
             if not isinstance(count, (int, float)) or math.isnan(count) or math.isinf(count):
                 count = 0
 
-            # ✅ Initialize nested dicts
+            # Initialize nested dicts
             grouped_data.setdefault(toc, {})
             grouped_data[toc].setdefault(cause, {"links": []})
 
@@ -812,7 +812,7 @@ async def aggregate_by_Sankey(
             all_links = defaultdict(int)
             for cause, values in causes.items():
                 for f, t, w in values["links"]:
-                    all_links[(f, t)] += w  # ✅ Use tuple key
+                    all_links[(f, t)] += w  # Use tuple key
 
             grouped_data[toc]["All Causes"] = {
                 "links": [[f, t, w] for (f, t), w in all_links.items()]
@@ -823,7 +823,7 @@ async def aggregate_by_Sankey(
         for toc, causes in grouped_data.items():
             for cause, values in causes.items():
                 for f, t, w in values["links"]:
-                    all_types[cause][(f, t)] += w  # ✅ Use tuple key
+                    all_types[cause][(f, t)] += w  # Use tuple key
 
         for cause, pairs in all_types.items():
             grouped_data.setdefault("All Types", {})
@@ -831,7 +831,7 @@ async def aggregate_by_Sankey(
                 "links": [[f, t, w] for (f, t), w in pairs.items()]
             }
 
-        # ✅ Build plain response dict
+        # Build plain response dict
         response = {}
         for toc, causes in grouped_data.items():
             response[toc] = {}

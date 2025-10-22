@@ -53,7 +53,7 @@ function Dashboard() {
   // Function to handle the industry selection change
   const handleIndustryChange = (event) => setSelectedIndustry(event);
 
-  // ✅ Fetch datasets
+  // Fetch datasets
   const {
     data: incidentsByIndustryYearMonth,
     loading: loadingYearMonth,
@@ -78,7 +78,7 @@ function Dashboard() {
     loading: loadingActor,
   } = useFetchData(`/api/aggregate_by_industry_and_actors?period=${selected_TimePeriod}`);
 
-  /* ✅ Code Needed to generate the TABLE at the bottom */
+  /* Code Needed to generate the TABLE at the bottom */
   const {
     data: Incidents, loading: loadingIncidents, error: errorIncidents
   } = useFetchData(`/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}&period=${selected_TimePeriod}`);
