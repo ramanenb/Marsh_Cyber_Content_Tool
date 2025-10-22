@@ -42,7 +42,6 @@ function Slides() {
   // industries data
   const [industryOptions, setIndustryOptions] = useState([]);
   const [selectedIndustries, setSelectedIndustries] = useState([]);
-  const [newIndustry, setNewIndustry] = useState("");
   useEffect(() => {
     const fetchIndustries = async () => {
       try {
@@ -56,12 +55,6 @@ function Slides() {
     fetchIndustries();
   }, []);
   //industry functions
-  const handleAddIndustry = () => {
-    if (newIndustry && !selectedIndustries.includes(newIndustry)) {
-      setSelectedIndustries([...selectedIndustries, newIndustry]);
-      setNewIndustry("");
-    }
-  };
 
   const handleDeleteIndustry = (index) => {
     const updated = [...selectedIndustries];
@@ -144,10 +137,7 @@ function Slides() {
           query: clientContext
             ? `cyber incidents: ${clientContext}`
             : "cyber incidents",
-          industries:
-            selectedIndustries.length > 0
-              ? selectedIndustries
-              : [],
+          industries: selectedIndustries.length > 0 ? selectedIndustries : [],
           region: newRegion || null,
           startDate: startDate || null,
           endDate: endDate || null,
@@ -226,6 +216,7 @@ function Slides() {
           size="small"
           onClick={() => {
             setSelectedFunction({
+              company: item.company || "",
               executive_summary: item.executive_summary || "",
               background: item.background || "",
               malicious_activity: item.malicious_activity || "",
@@ -283,13 +274,10 @@ function Slides() {
       });
 
       const payload = {
-          query: clientContext
-            ? `cyber incidents: ${clientContext}`
-            : "cyber incidents",
-        industries:
-          selectedIndustries.length > 0
-            ? selectedIndustries
-            : ["All Industries"],
+        query: clientContext
+          ? `cyber incidents: ${clientContext}`
+          : "cyber incidents",
+        industries: selectedIndustries.length > 0 ? selectedIndustries : [],
         region: newRegion || null,
         shortlisted_articles: shortlisted,
       };
@@ -447,9 +435,14 @@ function Slides() {
         <MDBox display="flex" mt={1} gap={1} alignItems="center">
           <MDInput
             select
-            label="Add Industry"
-            value={newIndustry}
-            onChange={(e) => setNewIndustry(e.target.value)}
+            label="Select Industry"
+            value=""
+            onChange={(e) => {
+              const selected = e.target.value;
+              if (!selectedIndustries.includes(selected)) {
+                setSelectedIndustries([...selectedIndustries, selected]);
+              }
+            }}
             sx={{ minWidth: 300 }}
             InputProps={{
               style: { minHeight: 50, padding: "12px" },
@@ -461,9 +454,6 @@ function Slides() {
               </MenuItem>
             ))}
           </MDInput>
-          <MDButton color="info" variant="outlined" onClick={handleAddIndustry}>
-            Add
-          </MDButton>
         </MDBox>
       </MDBox>
 
@@ -599,6 +589,7 @@ function Slides() {
         <DialogTitle>Incident Details</DialogTitle>
         <DialogContent dividers>
           {[
+            "company",
             "executive_summary",
             "background",
             "malicious_activity",
@@ -659,29 +650,13 @@ function Slides() {
                     .replace(/_/g, " ")
                     .replace(/\b\w/g, (l) => l.toUpperCase())}
                 </MDTypography>
-                {isEditing ? (
-                  <MDInput
-                    multiline
-                    fullWidth
-                    minRows={3}
-                    value={selectedFunction[field]}
-                    onChange={(e) =>
-                      setSelectedFunction((prev) => ({
-                        ...prev,
-                        [field]: e.target.value,
-                      }))
-                    }
-                    sx={{ mt: 0.5 }}
-                  />
-                ) : (
-                  <MDTypography
-                    variant="body2"
-                    whiteSpace="pre-line"
-                    sx={{ mt: 0.5 }}
-                  >
-                    {selectedFunction[field] || "—"}
-                  </MDTypography>
-                )}
+                <MDTypography
+                  variant="body2"
+                  whiteSpace="pre-line"
+                  sx={{ mt: 0.5 }}
+                >
+                  {selectedFunction[field] || "—"}
+                </MDTypography>
               </MDBox>
             )
           )}
