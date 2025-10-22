@@ -119,9 +119,6 @@ async def upload_result_to_s3(
                 ServerSideEncryption='AES256',
                 Metadata=metadata
             )
-        
-        # print(f"✅ Result uploaded to: s3://{S3_BUCKET_NAME}/{s3_key}")
-        # print(f"   📋 Metadata: {metadata}")
         return s3_key
         
     except Exception as e:

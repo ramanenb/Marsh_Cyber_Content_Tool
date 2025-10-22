@@ -140,7 +140,7 @@ async def process_single_article_flat(article_content: str, source_type: str, so
         return flat_result
 
     except Exception as e:
-        print(f"❌ Error processing article from {source_type}: {str(e)}")
+        print(f"Error processing article from {source_type}: {str(e)}")
         return {
             'source': source_type,
             'executive_summary': f'ERROR: {str(e)}',

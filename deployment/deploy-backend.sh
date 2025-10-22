@@ -1,4 +1,4 @@
-# #!/bin/bash
+#!/bin/bash
 # echo "Setting up Marsh x NUS Marsh_Cyber_Content_Tool Backend server..."
 
 # # Update system packages
@@ -49,6 +49,7 @@
 # WorkingDirectory=/home/ubuntu/Marsh_Cyber_Content_Tool/backend
 # Environment=PATH=/home/ubuntu/Marsh_Cyber_Content_Tool/backend/venv/bin
 # Environment=PYTHONPATH=/home/ubuntu/Marsh_Cyber_Content_Tool/backend
+# Environment=ENVIRONMENT=UAT
 # ExecStart=/home/ubuntu/Marsh_Cyber_Content_Tool/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 # Restart=always
 # RestartSec=3
@@ -91,11 +92,6 @@ if [ -d "Marsh_Cyber_Content_Tool" ]; then
         cp backend/app/config/settings.py /tmp/settings.py.backup
     fi
     
-    if [ -f "backend/app/config/secrets.py" ]; then
-        echo "Backing up secrets.py..."
-        cp backend/app/config/secrets.py /tmp/secrets.py.backup
-    fi
-    
     # Pull latest changes
     git pull origin frontend
     
@@ -103,11 +99,6 @@ if [ -d "Marsh_Cyber_Content_Tool" ]; then
     if [ -f "/tmp/settings.py.backup" ]; then
         echo "Restoring settings.py..."
         cp /tmp/settings.py.backup backend/app/config/settings.py
-    fi
-    
-    if [ -f "/tmp/secrets.py.backup" ]; then
-        echo "Restoring secrets.py..."
-        cp /tmp/secrets.py.backup backend/app/config/secrets.py
     fi
     
 else

@@ -25,7 +25,7 @@ def init_tracing():
         endpoint="https://app.phoenix.arize.com/s/capstonk18/v1/traces",
         auto_instrument=True
     )
-    print("✅ Arize Phoenix OTEL tracing initialized")
+    print("Arize Phoenix OTEL tracing initialized")
     return tracer_provider
 
 # MongoDB settings
@@ -36,15 +36,15 @@ pymongo_client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000) # Used fo
 async def init_mongo():
     try:
         pymongo_client.admin.command("ping")
-        print("✅ Synchronous MongoDB connection successful")
+        print("Synchronous MongoDB connection successful")
     except Exception as e:
-        print("❌ Synchronous MongoDB connection failed:", e)
+        print("Synchronous MongoDB connection failed:", e)
 
     try:
         await client.admin.command("ping")
-        print("✅ Async MongoDB connection successful")
+        print("Async MongoDB connection successful")
     except Exception as e:
-        print("❌ Async MongoDB connection failed:", e)
+        print("Async MongoDB connection failed:", e)
 
 # Database and collections 
 DB_NAME = "DB"
