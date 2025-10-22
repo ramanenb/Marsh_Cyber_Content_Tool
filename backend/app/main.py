@@ -11,15 +11,17 @@ from app.routes.ppt_routes import router as ppt_router
 from app.routes.data_upload_routes import router as data_upload_router
 from app.config.settings import init_mongo, init_tracing
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+if os.getenv("ENVIRONMENT", "DEV") == "DEV":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],  # Specific origin, not *
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
 
 # add posts router
 # REQUEST URL ->  http://127.0.0.1:8000/api/list_incidents

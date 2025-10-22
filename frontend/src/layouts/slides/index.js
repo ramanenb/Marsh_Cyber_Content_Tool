@@ -33,6 +33,7 @@ import DataTable from "examples/Tables/DataTable";
 
 // state/hooks
 import { useState, useEffect, useMemo } from "react";
+import { fetchWithFallback } from "utils/apiConfig";
 
 function Slides() {
   // proprietary data
@@ -45,7 +46,7 @@ function Slides() {
   useEffect(() => {
     const fetchIndustries = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/getIndustries");
+        const response = await fetchWithFallback("/api/getIndustries");
         const data = await response.json();
         if (data.industries) setIndustryOptions(data.industries);
       } catch (error) {
@@ -134,7 +135,7 @@ function Slides() {
   const handleGetIncidents = async () => {
     setLoadingIncidents(true);
     try {
-      const response = await fetch("http://localhost:8000/api/getIncidents", {
+      const response = await fetchWithFallback("/api/getIncidents", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -293,8 +294,8 @@ function Slides() {
         shortlisted_articles: shortlisted,
       };
 
-      const response = await fetch(
-        "http://localhost:8000/api/ppt/generate-presentation",
+      const response = await fetchWithFallback(
+        "/api/ppt/generate-presentation",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

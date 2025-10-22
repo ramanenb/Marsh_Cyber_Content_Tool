@@ -22,6 +22,7 @@ import HorizontalBarChart from "examples/Charts/BarCharts/HorizontalBarChart";
 import DataTable from "examples/Tables/DataTable";
 
 import { useState, useEffect } from "react";
+import { fetchWithFallback } from "utils/apiConfig";
 
 // process JSON after it has been fetched
 function useFetchData(endpoint_link) {
@@ -30,10 +31,7 @@ function useFetchData(endpoint_link) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(endpoint_link, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    })
+    fetchWithFallback(endpoint_link)
       .then((resp) => resp.json())
       .then((resp) => {
         const pulled_data = resp?.result || [];
@@ -59,7 +57,7 @@ function Dashboard() {
   const {
     data: incidentsByIndustryYearMonth,
     loading: loadingYearMonth,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry_and_month?period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/aggregate_by_industry_and_month?period=${selected_TimePeriod}`);
   // Build Industry dropdown options safely
   const ALL_IndustryValues = [
     ...new Set(Object.keys(incidentsByIndustryYearMonth || {})),
@@ -68,24 +66,24 @@ function Dashboard() {
   const {
     data: incidentsByIndustry_EventSubtype,
     loading: loadingSubtype,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=event_subtype&period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/aggregate_by_industry?group_by_field=event_subtype&period=${selected_TimePeriod}`);
 
   const {
     data: incidentsByIndustry_Motive,
     loading: loadingMotive,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry?group_by_field=motive&period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/aggregate_by_industry?group_by_field=motive&period=${selected_TimePeriod}`);
 
   const {
     data: incidentsByIndustry_Actor,
     loading: loadingActor,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_industry_and_actors?period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/aggregate_by_industry_and_actors?period=${selected_TimePeriod}`);
 
   /* ✅ Code Needed to generate the TABLE at the bottom */
   const {
     data: Incidents, loading: loadingIncidents, error: errorIncidents
-  } = useFetchData(`http://127.0.0.1:8000/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}&period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/list_incidents?industry=${encodeURIComponent(selectedIndustry)}&period=${selected_TimePeriod}`);
 
-  const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`http://127.0.0.1:8000/api/Internet_Data`);
+  const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`/api/Internet_Data`);
   
   const columns = [
       { Header: "Victim", accessor: "Victim", width: "45%", align: "left"},

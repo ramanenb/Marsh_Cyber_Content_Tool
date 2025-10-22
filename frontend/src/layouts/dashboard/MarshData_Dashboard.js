@@ -25,6 +25,7 @@ import RadarChart from "examples/Charts/RadarChart";
 import SankeyChart from "examples/Charts/SankeyChart/Sankey";
 
 import { useState, useEffect, useMemo } from "react";
+import { fetchWithFallback } from "utils/apiConfig";
 
 // process JSON after it has been fetched
 function useFetchData(endpoint_link) {
@@ -33,10 +34,7 @@ function useFetchData(endpoint_link) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(endpoint_link, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    })
+    fetchWithFallback(endpoint_link)
       .then((resp) => resp.json())
       .then((resp) => {
         const pulled_data = resp?.result || resp?.industries || [];
@@ -77,7 +75,7 @@ function MarshData_Dashboard() {
     ALL_Values: ALL_IndustriesValues, loadingValues: loadingIndustry,
   } = useCreateFilterVariables({
     defaultValue: "All Industries",
-    endpoint_link: "http://127.0.0.1:8000/api/getIndustries",
+    endpoint_link: "/api/getIndustries",
   });
 
   // 3️. CLAIM CAUSE FILTER
@@ -85,7 +83,7 @@ function MarshData_Dashboard() {
     ALL_Values: ALL_ClaimCausesValues, loadingValues: loadingClaimCauses,
   } = useCreateFilterVariables({
     defaultValue: "All Causes",
-    endpoint_link: `http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Cause&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
+    endpoint_link: `/api/unique_valueFOR?group_by_field=Cause&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
   });
 
   // 4️. CLAIM TYPE FILTER
@@ -93,45 +91,45 @@ function MarshData_Dashboard() {
     ALL_Values: ALL_ClaimTypeValues, loadingValues: loadingClaimType,
   } = useCreateFilterVariables({
     defaultValue: "All Types",
-    endpoint_link: `http://127.0.0.1:8000/api/unique_valueFOR?group_by_field=Type%20of%20Claim&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
+    endpoint_link: `/api/unique_valueFOR?group_by_field=Type%20of%20Claim&period=${selected_TimePeriod}&industry=${selectedIndustry}`,
   });
 
   // ✅ Fetch datasets
   const {
     data: incidentsByIndustry_TP_YearMonth, loading: loadingYearMonth,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${0}`);
+  } = useFetchData(`/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${0}`);
   const {
     data: incidentsByIndustry_TP_Coverage, loading: loadingCoverage,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Coverage?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/aggregateby_Claim_Coverage?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
   const {
     data: incidentsByIndustry_TPYearMonth_CHANGE, loading: loadingYearMonth_Change,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${1}`);
+  } = useFetchData(`/api/aggregate_by_filters?industry=${selectedIndustry}&period=${selected_TimePeriod}&isChange=${1}`);
   const {
     data: incidentsByIndustry_TPY_LossEstimate, loading: loadingYearMonth_LossEstimate,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Loss_Estimate?industry=${selectedIndustry}&period=${selected_TimePeriod}&bins=${5}`);
+  } = useFetchData(`/api/aggregateby_Loss_Estimate?industry=${selectedIndustry}&period=${selected_TimePeriod}&bins=${5}`);
   const {
     data: incidentsByIndustry_TPY_Cause, loading: loadingYearMonth_Cause,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause`);
+  } = useFetchData(`/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause`);
   const {
     data: incidentsByIndustry_TPY_Types, loading: loadingYearMonth_Types,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
+  } = useFetchData(`/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
   const {
     data: incidentsByIndustry_TPY_Countries, loading: loadingYearMonsth_TPY_Countries
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_AffectedCountries?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
+  } = useFetchData(`/api/aggregateby_AffectedCountries?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Type%20of%20Claim`);
   const {
     data: incidentsByIndustry_TPY_Sankey, loading: loadingYearMonsth_TPY_Sankey
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_Claim_Sankey?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
+  } = useFetchData(`/api/aggregateby_Claim_Sankey?industry=${selectedIndustry}&period=${selected_TimePeriod}`);
   const {
     data: incidentsByIndustry_TPY, loading: loadingYearMonsth_TPY
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_IndivIncidents?industry=${selectedIndustry}&period=${selected_TimePeriod}&Cause=${selected_ClaimCause}&ClaimType=${selected_ClaimType}`);
+  } = useFetchData(`/api/aggregateby_IndivIncidents?industry=${selectedIndustry}&period=${selected_TimePeriod}&Cause=${selected_ClaimCause}&ClaimType=${selected_ClaimType}`);
   const {
     data: incidentsByIndustry_TPY_Cause_SumLoss, loading: loadingYearMonth_Cause_SumLoss,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Sum_Loss`);
+  } = useFetchData(`/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Sum_Loss`);
   const {
     data: incidentsByIndustry_TPY_Cause_AvgLoss, loading: loadingYearMonth_Cause_AvgLoss,
-  } = useFetchData(`http://127.0.0.1:8000/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Avg_Loss`);
+  } = useFetchData(`/api/aggregateby_CauseOrType?industry=${selectedIndustry}&period=${selected_TimePeriod}&group_by_field=Cause&aggregation_method=Avg_Loss`);
   
-  const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`http://127.0.0.1:8000/api/Marsh_Data`);
+  const {data: latestIncidentDate, loading: loadingLatestIncidentDate} = useFetchData(`/api/Marsh_Data`);
 
   // ✅ PREP structure of components for the claims table at the very BOTTOM
   const Author = ({ name, email }) => (
