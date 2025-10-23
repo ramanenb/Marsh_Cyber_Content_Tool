@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from app.config.settings import llm
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -73,7 +74,31 @@ async def extract_date_from_text(text: str) -> str | None:
     print(date)
     return date
 
-async def fetch_full_text_async(url: str, starts_at: str) -> str:
+def extract_organization_from_article(title: str, content: str) -> str:
+    """Extract the main affected organization from article title and content using LLM"""
+    prompt = f"""
+    Extract the main company or organization that was affected by the cybersecurity incident from this article.
+
+    Title: {title}
+    Content: {content[:1000]}...
+
+    Rules:
+    - Return ONLY the organization name, nothing else.
+    - If multiple organizations are mentioned, choose the primary target/victim.
+    - If not determinable, return exactly "UNKNOWN".
+    """
+
+    try:
+        response = llm([HumanMessage(content=prompt)])
+        org_name = response.content.strip()
+        # Clean up common suffixes and prefixes
+        org_name = re.sub(r'\b(Inc|Corp|Corporation|Ltd|Limited|Company|Co)\b\.?', '', org_name, flags=re.IGNORECASE).strip()
+        return org_name if org_name and org_name != "UNKNOWN" else "UNKNOWN"
+    except Exception as e:
+        print(f"Error extracting organization: {e}")
+        return "UNKNOWN"
+
+async def fetch_full_text_async(url: str, starts_at: str) -> tuple[str, str]:
     """Async load full article text using WebBaseLoader."""
     BLOCKED_DOMAINS = [
         "darkreading.com",
@@ -85,7 +110,7 @@ async def fetch_full_text_async(url: str, starts_at: str) -> str:
         domain = domain[4:]
     if domain in BLOCKED_DOMAINS:
         print(f"[INFO] Skipping blocked domain: {domain}")
-        return starts_at # returns back original article["content"]
+        return starts_at, starts_at # returns back original article["content"]
 
     try:
         loader = WebBaseLoader(url, show_progress=True, continue_on_failure=True)
@@ -95,7 +120,7 @@ async def fetch_full_text_async(url: str, starts_at: str) -> str:
         return raw_text, clean_text
     except Exception as e:
         print(f"[WARN] Failed to fetch {url}: {e}")
-        return "", ""
+        return starts_at, starts_at
 
 async def process_result_async(result: dict) -> dict:
     start_time = time.perf_counter()
@@ -143,9 +168,15 @@ async def process_result_async(result: dict) -> dict:
             processed["retrieved_docs"].append(item)
         else:
             item["content"] = clean_text
+
             # Extract date asynchronously (string in ISO format or "NA")
             date = await extract_date_from_text(raw_text)
             item["date"] = date
+
+            # Extract primary organization
+            affected_org = extract_organization_from_article(item.get("title", ""), item.get("content", ""))
+            item["affected_organization"] = affected_org if affected_org else "UNKNOWN"
+
             processed["news_articles"].append(item)
 
     total_time = time.perf_counter() - start_time
