@@ -57,7 +57,7 @@ Here is the data:
     ************
     [Original Document]: {input}
     [END DATA]
-Compare the Summary of the four components (executive_summary, background, malicious_activity, outcomes_and_losses) above to the Original Document. Do note the character counts of executive_summary (in no more than 700 characters), background (in no more than 800 characters), malicious_activity (in no more than 800 characters), outcomes_and_losses (in no more than 900 characters) when evaluating the quality of the summary.
+Compare the Summary of the four components (executive_summary, background, malicious_activity, outcomes_and_losses) above to the Original Document. Do note the character counts of executive_summary (in no more than 500 characters), background (in no more than 1000 characters), malicious_activity (in no more than 1000 characters), outcomes_and_losses (in no more than 1500 characters) when evaluating the quality of the summary.
 
 First, write out in a step by step manner an EXPLANATION to show how to determine if each of the executive_summary, background, malicious_activity, outcomes_and_losses is comprehensive, concise, coherent, and
 independent relative to the Original Document. Avoid simply stating the correct answer at the
@@ -117,7 +117,7 @@ async def process_articles_with_dual_evaluation(articles_list: List[Dict[str, An
     Add BOTH hallucination and summarisation classification to each processed article
     """
 
-    user_prompt = "Based on the reference_text, which is information scrapped from a news article, Summarise to include the executive_summary (in no more than 500 characters), background (in no more than 600 characters), malicious_activity (in no more than 600 characters), outcomes_and_losses (in no more than 700 characters)."
+    user_prompt = "Based on the reference_text, which is information scrapped from a news article, Summarise to include the executive_summary (in no more than 500 characters), background (in no more than 1000 characters), malicious_activity (in no more than 1000 characters), outcomes_and_losses (in no more than 1500 characters)."
 
     # ==================== HALLUCINATION EVALUATION ====================
 
