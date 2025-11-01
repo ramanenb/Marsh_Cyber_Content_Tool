@@ -43,15 +43,17 @@ import MarshData_Dashboard from "layouts/dashboard/MarshData_Dashboard";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
+
 // @mui icons
 import Icon from "@mui/material/Icon";
+import ProtectedRoute from "User_Authentication/ProtectedRoute";
 
 const routes = [
   {
     name: "Dashboard",
     key: "dashboard",
     route: "/dashboard/Internet",
-    component: <Dashboard />,
+    component: (<ProtectedRoute> <Dashboard /> </ProtectedRoute>) ,
   },
   // Edited in Route for Marsh's Dashboard
   {
@@ -60,7 +62,7 @@ const routes = [
     key: "dashboard",
     icon: <Icon fontSize="small">dashboard</Icon>,
     route: "/dashboard/Marsh",
-    component: <MarshData_Dashboard />,
+    component: (<ProtectedRoute> <MarshData_Dashboard /> </ProtectedRoute>),
   },
   {
     type: "collapse",
@@ -68,7 +70,7 @@ const routes = [
     key: "slides",
     icon: <Icon fontSize="small">table_view</Icon>,
     route: "/slides",
-    component: <Slides />,
+    component: (<ProtectedRoute> <Slides /> </ProtectedRoute>),
   },
   {
     type: "collapse",
@@ -76,11 +78,8 @@ const routes = [
     key: "repository",
     icon: <Icon fontSize="small">info</Icon>,
     route: "/repository",
-    component: <Repository />,
+    component: (<ProtectedRoute> <Repository /> </ProtectedRoute>),
   },
-
-
-
 ];
 
 export default routes;

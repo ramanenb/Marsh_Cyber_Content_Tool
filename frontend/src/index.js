@@ -17,6 +17,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "App";
+import { LoginContextProvider } from "User_Authentication/LoginContext";
 
 // Material Dashboard 2 React Context Provider
 import { MaterialUIControllerProvider } from "context";
@@ -26,8 +27,10 @@ const root = createRoot(container);
 
 root.render(
   <BrowserRouter>
+  <LoginContextProvider>
     <MaterialUIControllerProvider>
-      <App />
+        <App />
     </MaterialUIControllerProvider>
+    </LoginContextProvider>
   </BrowserRouter>
 );
