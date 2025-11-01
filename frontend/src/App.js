@@ -52,6 +52,7 @@ import { useMaterialUIController, setMiniSidenav, setOpenConfigurator } from "co
 // Images
 import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
+import SignInSide from "User_Authentication/SignIn";
 
 export default function App() {
   const [controller, dispatch] = useMaterialUIController();
@@ -150,7 +151,7 @@ export default function App() {
     <CacheProvider value={rtlCache}>
       <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
         <CssBaseline />
-        {layout === "dashboard" && (
+        {layout === "dashboard" && pathname !== "/login" && (
           <>
             <Sidenav
               color={sidenavColor}
@@ -166,15 +167,16 @@ export default function App() {
         )}
         {layout === "vr" && <Configurator />}
         <Routes>
+          <Route exact path={"/login"} element={<SignInSide />} key={"Signin"} />
           {getRoutes(routes)}
-          <Route path="*" element={<Navigate to="/dashboard/Marsh" />} />
+          <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </ThemeProvider>
     </CacheProvider>
   ) : (
     <ThemeProvider theme={darkMode ? themeDark : theme}>
       <CssBaseline />
-      {layout === "dashboard" && (
+      {layout === "dashboard" && pathname !== "/login" && (
         <>
           <Sidenav
             color={sidenavColor}
@@ -190,8 +192,9 @@ export default function App() {
       )}
       {layout === "vr" && <Configurator />}
       <Routes>
+        <Route exact path={"/login"} element={<SignInSide />} key={"Signin"} />
         {getRoutes(routes)}
-        <Route path="*" element={<Navigate to="/dashboard/Marsh" />} />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </ThemeProvider>
   );
