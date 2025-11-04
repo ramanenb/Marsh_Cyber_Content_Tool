@@ -32,12 +32,12 @@ def tavily_search(args) -> str:
         end_date=end_date,
         include_domains=[
             "bleepingcomputer.com",
-            "securityweek.com",
             "thecyberwire.com",
             "thehackernews.com",
             "therecord.media",
             "databreachtoday.com",
-            "databreaches.net"
+            "databreaches.net",
+            "techtarget.com"
         ],
     )
     articles = tavily.invoke({"query": query}).get("results")
