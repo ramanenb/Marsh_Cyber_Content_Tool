@@ -102,7 +102,8 @@ async def fetch_full_text_async(url: str, starts_at: str) -> tuple[str, str]:
     """Async load full article text using WebBaseLoader."""
     BLOCKED_DOMAINS = [
         "darkreading.com",
-        "stniiomyjliimcgkvdszvgen3eaaoz55hreqqx6o77yvmpwt7gklffqd.onion"
+        "stniiomyjliimcgkvdszvgen3eaaoz55hreqqx6o77yvmpwt7gklffqd.onion",
+        "securityweek.com", # Javascript-protected
     ]
     print(f"Fetching url: {url}")
     domain = urlparse(url).netloc.lower()
@@ -167,7 +168,8 @@ async def process_result_async(result: dict) -> dict:
             item["page_content"] += "\n" + clean_text
             processed["retrieved_docs"].append(item)
         else:
-            item["content"] = clean_text
+            # append to original content in case article text was not actually loaded
+            item["content"] += "\n" + clean_text
 
             # Extract date asynchronously (string in ISO format or "NA")
             date = await extract_date_from_text(raw_text)
