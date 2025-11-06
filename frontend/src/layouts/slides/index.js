@@ -11,6 +11,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import DialogContentText from '@mui/material/DialogContentText';
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
@@ -38,6 +39,77 @@ import { fetchWithFallback } from "utils/apiConfig";
 function Slides() {
   // proprietary data
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [duplicates, setDuplicates] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingUploadData, setPendingUploadData] = useState(null);
+
+  // Handle dropped files
+  const handleUpload = async () => {
+    if (uploadedFiles.length === 0) return;
+  
+    const file = uploadedFiles[0];
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    try {
+      // Check for duplicates
+      const checkRes = await fetch("http://localhost:8000/api/check_duplicates/", {
+        method: "POST",
+        body: formData,
+      });
+  
+      const checkData = await checkRes.json();
+  
+      if (checkData.status === "success" && checkData.duplicates.length > 0) {
+        setDuplicates(checkData.duplicates);
+        setPendingUploadData(formData);
+        setConfirmOpen(true);
+        return; 
+      }
+  
+      // No duplicates go straight to upload
+      await performUpload(formData);
+  
+    } catch (err) {
+      console.error("Error checking duplicates:", err);
+    }
+  };
+
+  const performUpload = async (formData) => {
+
+    setLoading(true);
+    setSuccess(false);
+
+    try {
+      const res = await fetch("http://localhost:8000/api/upload_prop_data/", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      console.log("Upload response:", data);
+
+      if (data.status == "success") {
+        setSnackbar({
+          open: true,
+          message: "Uploaded successfully!",
+          color: "success",
+        });
+        setSuccess(true); // indicate success
+        setUploadedFiles([]); // clear uploaded files
+      } else {
+        console.error("Upload failed:", data);
+        setSuccess(false);
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+      //setSuccess(false);
+    } finally {
+      setLoading(false); // stop loading
+      setConfirmOpen(false);
+    }
+  };
 
   // industries data
   const [industryOptions, setIndustryOptions] = useState([]);
@@ -405,6 +477,51 @@ function Slides() {
           )}
         </MDBox>
       </MDBox>
+
+      <MDBox px={3} pt={3}>
+          {uploadedFiles.length > 0 && (
+            <MDButton onClick={handleUpload} color="info" disabled={loading}>
+              {loading && <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />}
+              {loading ? "Uploading..." : "Process & Upload"}
+            </MDButton>
+          )}
+
+          {success && (
+            <MDTypography variant="body2" color="success.main" mt={1}>
+              Upload successful!
+            </MDTypography>
+          )}
+      </MDBox>
+      
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth>
+        <DialogTitle>Duplicate Claims Found</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Some claim numbers already exist in the database:
+            <br /><br />
+            {duplicates.slice(0, 5).join(", ")}
+            {duplicates.length > 5 && "..."}
+            <br /><br />
+            Do you want to overwrite them? This will replace any existing data for those claims.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <MDButton onClick={() => setConfirmOpen(false)}>Cancel</MDButton>
+          <MDButton
+            onClick={async () => {
+              setConfirmOpen(false);
+              await performUpload(pendingUploadData);
+            }}
+            color="error"
+            variant="contained">
+            Overwrite & Upload
+          </MDButton>
+        </DialogActions>
+      </Dialog>
 
       <MDBox px={3} pt={3}>
         <MDTypography variant="h6">Select Industries</MDTypography>
