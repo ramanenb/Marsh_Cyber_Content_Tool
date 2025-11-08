@@ -1,4 +1,6 @@
 // Material Dashboard 2 React components
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import IconButton from "@mui/material/IconButton";
@@ -7,10 +9,10 @@ import MDButton from "components/MDButton";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Dialog from "@mui/material/Dialog";
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogActions from '@mui/material/DialogActions';
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
 import MuiAlert from "@mui/material/Alert";
 
 // Material Dashboard 2 React example components
@@ -27,6 +29,8 @@ function Repo() {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [loadingFetch, setLoadingFetch] = useState(false);
+  const [successFetch, setSuccessFetch] = useState(false);
   const [mongoData, setMongoData] = useState([]);
   const [uploadedFileLinks, setUploadedFileLinks] = useState([]);
   const [uploadedPptxLinks, setUploadedPptxLinks] = useState([]);
@@ -88,7 +92,7 @@ function Repo() {
     fetchMongoData();
     fetchUploadedFiles();
     fetchUploadedPptxFiles();
-  }, []);  
+  }, []);
 
   // Handle dropped files
   const handleDrop = useCallback((e) => {
@@ -114,37 +118,41 @@ function Repo() {
 
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) return;
-  
+
     const file = uploadedFiles[0];
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
       // Check for duplicates
       const checkRes = await fetchWithFallback("/api/check_duplicates/", {
         method: "POST",
         body: formData,
       });
-  
+
       const checkData = await checkRes.json();
-  
+
       if (checkData.status === "success" && checkData.duplicates.length > 0) {
         setDuplicates(checkData.duplicates);
         setPendingUploadData(formData);
         setConfirmOpen(true);
-        return; 
+        setSnackbar({
+          open: true,
+          message: `Duplicate detected: ${checkData.duplicates.length} existing claim(s) found.`,
+          color: "warning", // yellow alert
+        });
+        return;
       }
-  
+
       // No duplicates go straight to upload
       await performUpload(formData);
-  
+      
     } catch (err) {
       console.error("Error checking duplicates:", err);
     }
   };
 
   const performUpload = async (formData) => {
-
     setLoading(true);
     setSuccess(false);
 
@@ -156,7 +164,7 @@ function Repo() {
       const data = await res.json();
       console.log("Upload response:", data);
 
-      if (data.status == "success") {
+      if (data.status === "success") {
         setSnackbar({
           open: true,
           message: "Uploaded successfully!",
@@ -177,6 +185,23 @@ function Repo() {
       setLoading(false); // stop loading
       setConfirmOpen(false);
     }
+  };
+  // placeholder fetch handler
+  const handleFakeFetch = () => {
+    setLoadingFetch(true);
+    setSuccessFetch(false);
+    setSnackbar({ open: false, message: "", color: "info" });
+
+    // Simulate a 3-second fetch delay
+    setTimeout(() => {
+      setLoadingFetch(false);
+      setSuccessFetch(true);
+      setSnackbar({
+        open: true,
+        message: "Data fetched successfully!",
+        color: "success",
+      });
+    }, 5000);
   };
 
   // snackbar feedback
@@ -284,7 +309,9 @@ function Repo() {
         <MDBox mt={2}>
           {uploadedFiles.length > 0 && (
             <MDButton onClick={handleUpload} color="info" disabled={loading}>
-              {loading && <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />}
+              {loading && (
+                <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />
+              )}
               {loading ? "Uploading..." : "Process & Upload"}
             </MDButton>
           )}
@@ -295,159 +322,241 @@ function Repo() {
             </MDTypography>
           )}
         </MDBox>
-
-        {mongoData.length > 0 && (
-        <MDBox mt={4}>
-          <MDTypography variant="h6" gutterBottom>
-            MongoDB Records
+        <MDBox mt={6} textAlign="center">
+          <MDTypography variant="h6">
+            Manually Fetch Latest Data (Optional)
           </MDTypography>
-          <DataTable
-            table={{
-              columns: [
-                { Header: "Claim Number", accessor: "_id" },
-                { Header: "Client Name", accessor: "Client Name" },
-                { Header: "Coverage", accessor: "Coverage" },
-                { Header: "Incident Date", accessor: "Incident Date" },
-                { Header: "Country", accessor: "Country (Set ID)" },
-                { Header: "Cause", accessor: "Cause" },
-                { Header: "Type of Claim", accessor: "Type of Claim" },
-                { Header: "Industry", accessor: "Industry" },
-                {
-                  Header: "Total Paid (USD)",
-                  accessor: "Total Paid (USD)",
-                  Cell: ({ value }) =>
-                    value !== undefined && value !== null
-                      ? value.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })
-                      : "-",
-                },
-                { Header: "Claim Result", accessor: "Claim Result" },
-              ],
-              rows: mongoData.map((item) => {
-                console.log("Parsing date:", item["Incident Date"]);
-                const parsed = new Date(item["Incident Date"]);
-                console.log("Parsed result:", parsed);
-                return {
-                  ...item,
-                  "Incident Date": item["Incident Date"]
-                    ? parsed.toLocaleDateString()
-                    : "N/A",
-                };
-              }),
-            }}
-            isSorted={true}
-            entriesPerPage={{ defaultValue: 8, entries: [8, 15, 25, 50] }}
-            showTotalEntries={false}
-            canSearch={true}
-            noEndBorder
-          />
+          <MDTypography variant="body2" color="text" mb={2}>
+            Click below to fetch the latest records from the database.
+          </MDTypography>
+          <MDBox mt={2}>
+            <MDButton onClick={handleFakeFetch} color="info" disabled={loadingFetch}>
+              {loadingFetch && (
+                <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />
+              )}
+              {loadingFetch ? "Fetching..." : "Fetch Data"}
+            </MDButton>
+
+            {successFetch && (
+              <MDTypography variant="body2" color="success.main" mt={1}>
+                Data is displayed in the MongoDB Records Table below.
+              </MDTypography>
+            )}
+          </MDBox>
         </MDBox>
+        {mongoData.length > 0 && (
+          <MDBox mt={4} pt={3}>
+            <Grid container spacing={6}>
+              <Grid item xs={12}>
+                <Card>
+                  <MDBox
+                    mx={2}
+                    mt={-3}
+                    py={3}
+                    px={2}
+                    variant="gradient"
+                    bgColor="info"
+                    borderRadius="lg"
+                    coloredShadow="info"
+                  >
+                    <MDTypography variant="h6" color="white">
+                      MongoDB Records
+                    </MDTypography>
+                  </MDBox>
+                  <DataTable
+                    table={{
+                      columns: [
+                        { Header: "Claim Number", accessor: "_id" },
+                        { Header: "Client Name", accessor: "Client Name" },
+                        { Header: "Coverage", accessor: "Coverage" },
+                        { Header: "Incident Date", accessor: "Incident Date" },
+                        { Header: "Country", accessor: "Country (Set ID)" },
+                        { Header: "Cause", accessor: "Cause" },
+                        { Header: "Type of Claim", accessor: "Type of Claim" },
+                        { Header: "Industry", accessor: "Industry" },
+                        {
+                          Header: "Total Paid (USD)",
+                          accessor: "Total Paid (USD)",
+                          Cell: ({ value }) =>
+                            value !== undefined && value !== null
+                              ? value.toLocaleString("en-US", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : "-",
+                        },
+                        { Header: "Claim Result", accessor: "Claim Result" },
+                      ],
+                      rows: mongoData.map((item) => {
+                        // console.log("Parsing date:", item["Incident Date"]);
+                        const parsed = new Date(item["Incident Date"]);
+                        // console.log("Parsed result:", parsed);
+                        return {
+                          ...item,
+                          "Incident Date": item["Incident Date"]
+                            ? parsed.toLocaleDateString()
+                            : "N/A",
+                        };
+                      }),
+                    }}
+                    isSorted={true}
+                    entriesPerPage={{
+                      defaultValue: 8,
+                      entries: [8, 15, 25, 50],
+                    }}
+                    showTotalEntries={false}
+                    canSearch={true}
+                    noEndBorder
+                  />
+                </Card>
+              </Grid>
+            </Grid>
+          </MDBox>
         )}
 
         {uploadedFileLinks.length > 0 && (
           <MDBox mt={6}>
-            <MDTypography variant="h6" gutterBottom>
-              Uploaded Proprietary Data Files
-            </MDTypography>
-            <DataTable
-              table={{
-                columns: [
-                  { Header: "File Name", accessor: "filename" },
-                  {
-                    Header: "Uploaded At",
-                    accessor: "uploaded_at",
-                    Cell: ({ value }) =>
-                      value ? new Date(value).toLocaleString() : "Unknown",
-                  },
-                  {
-                    Header: "Download Link",
-                    accessor: "url",
-                    Cell: ({ value }) => (
-                      <MDButton
-                        color="info"
-                        size="small"
-                        component="a"
-                        href={value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Open
-                      </MDButton>
-                    ),
-                  },
-                ],
-                rows: uploadedFileLinks,
-              }}
-              isSorted={false}
-              entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
-              showTotalEntries={false}
-              noEndBorder
-            />
+            <Grid container spacing={6}>
+              <Grid item xs={12}>
+                <Card>
+                  <MDBox
+                    mx={2}
+                    mt={-3}
+                    py={3}
+                    px={2}
+                    variant="gradient"
+                    bgColor="info"
+                    borderRadius="lg"
+                    coloredShadow="info"
+                  >
+                    <MDTypography variant="h6" color="white">
+                      Uploaded Proprietary Data Files
+                    </MDTypography>
+                  </MDBox>
+
+                  <DataTable
+                    table={{
+                      columns: [
+                        { Header: "File Name", accessor: "filename" },
+                        {
+                          Header: "Uploaded At",
+                          accessor: "uploaded_at",
+                          Cell: ({ value }) =>
+                            value
+                              ? new Date(value).toLocaleString()
+                              : "Unknown",
+                        },
+                        {
+                          Header: "Download Link",
+                          accessor: "url",
+                          Cell: ({ value }) => (
+                            <MDButton
+                              color="info"
+                              size="small"
+                              component="a"
+                              href={value}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Open
+                            </MDButton>
+                          ),
+                        },
+                      ],
+                      rows: uploadedFileLinks,
+                    }}
+                    isSorted={false}
+                    entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
+                    showTotalEntries={false}
+                    noEndBorder
+                  />
+                </Card>
+              </Grid>
+            </Grid>
           </MDBox>
         )}
 
         {uploadedPptxLinks.length > 0 && (
           <MDBox mt={6}>
-            <MDTypography variant="h6" gutterBottom>
-              Generated PPTX Files
-            </MDTypography>
-            <DataTable
-              table={{
-                columns: [
-                  { Header: "File Name", accessor: "filename" },
-                  {
-                    Header: "Uploaded At",
-                    accessor: "uploaded_at",
-                    Cell: ({ value }) =>
-                      value
-                        ? new Date(value).toLocaleString()
-                        : "Unknown",
-                  },
-                  {
-                    Header: "Download Link",
-                    accessor: "url",
-                    Cell: ({ value }) => (
-                      <MDButton
-                        color="info"
-                        size="small"
-                        component="a"
-                        href={value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Open
-                      </MDButton>
-                    ),
-                  },
-                ],
-                rows: uploadedPptxLinks,
-              }}
-              isSorted={false}
-              entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
-              showTotalEntries={false}
-              noEndBorder
-            />
+            <Grid container spacing={6}>
+              <Grid item xs={12}>
+                <Card>
+                  <MDBox
+                    mx={2}
+                    mt={-3}
+                    py={3}
+                    px={2}
+                    variant="gradient"
+                    bgColor="info"
+                    borderRadius="lg"
+                    coloredShadow="info"
+                  >
+                    <MDTypography variant="h6" color="white">
+                      Generated PPTX Files
+                    </MDTypography>
+                  </MDBox>
+
+                  <DataTable
+                    table={{
+                      columns: [
+                        { Header: "File Name", accessor: "filename" },
+                        {
+                          Header: "Uploaded At",
+                          accessor: "uploaded_at",
+                          Cell: ({ value }) =>
+                            value
+                              ? new Date(value).toLocaleString()
+                              : "Unknown",
+                        },
+                        {
+                          Header: "Download Link",
+                          accessor: "url",
+                          Cell: ({ value }) => (
+                            <MDButton
+                              color="info"
+                              size="small"
+                              component="a"
+                              href={value}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Open
+                            </MDButton>
+                          ),
+                        },
+                      ],
+                      rows: uploadedPptxLinks,
+                    }}
+                    isSorted={false}
+                    entriesPerPage={{ defaultValue: 5, entries: [5, 10, 20] }}
+                    showTotalEntries={false}
+                    noEndBorder
+                  />
+                </Card>
+              </Grid>
+            </Grid>
           </MDBox>
         )}
-
       </MDBox>
 
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="sm"
-        fullWidth>
+        fullWidth
+      >
         <DialogTitle>Duplicate Claims Found</DialogTitle>
         <DialogContent>
           <DialogContentText>
             Some claim numbers already exist in the database:
-            <br /><br />
+            <br />
+            <br />
             {duplicates.slice(0, 5).join(", ")}
             {duplicates.length > 5 && "..."}
-            <br /><br />
-            Do you want to overwrite them? This will replace any existing data for those claims.
+            <br />
+            <br />
+            Do you want to overwrite them? This will replace any existing data
+            for those claims.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -458,27 +567,28 @@ function Repo() {
               await performUpload(pendingUploadData);
             }}
             color="error"
-            variant="contained">
+            variant="contained"
+          >
             Overwrite & Upload
           </MDButton>
         </DialogActions>
       </Dialog>
 
-
       <Snackbar
         open={snackbar.open}
         autoHideDuration={8000} // disappears after 3 seconds
         anchorOrigin={{ vertical: "top", horizontal: "right" }} // top center
-        onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
         <MuiAlert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.color} // 'success', 'error', 'info', 'warning'
           variant="filled"
-          sx={{ width: "100%" }}>
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </MuiAlert>
       </Snackbar>
-
     </DashboardLayout>
   );
 }
