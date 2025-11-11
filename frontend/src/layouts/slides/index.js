@@ -11,7 +11,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import DialogContentText from '@mui/material/DialogContentText';
+import DialogContentText from "@mui/material/DialogContentText";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
@@ -48,11 +48,11 @@ function Slides() {
   // Handle dropped files
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) return;
-  
+
     const file = uploadedFiles[0];
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
       // Check for duplicates
       const checkRes = await fetchWithFallback("/api/check_duplicates/", {
@@ -61,24 +61,22 @@ function Slides() {
       });
   
       const checkData = await checkRes.json();
-  
+
       if (checkData.status === "success" && checkData.duplicates.length > 0) {
         setDuplicates(checkData.duplicates);
         setPendingUploadData(formData);
         setConfirmOpen(true);
-        return; 
+        return;
       }
-  
+
       // No duplicates go straight to upload
       await performUpload(formData);
-  
     } catch (err) {
       console.error("Error checking duplicates:", err);
     }
   };
 
   const performUpload = async (formData) => {
-
     setLoading(true);
     setSuccess(false);
 
@@ -90,7 +88,7 @@ function Slides() {
       const data = await res.json();
       console.log("Upload response:", data);
 
-      if (data.status == "success") {
+      if (data.status === "success") {
         setSnackbar({
           open: true,
           message: "Uploaded successfully!",
@@ -171,7 +169,12 @@ function Slides() {
       },
     },
 
-    { Header: "company", accessor: "company", width: "15%", align: "left" },
+    {
+      Header: "company",
+      accessor: "affected_organization",
+      width: "15%",
+      align: "left",
+    },
     {
       Header: "Incident Details",
       accessor: "executive_summary",
@@ -195,7 +198,23 @@ function Slides() {
   const [selectedIncidents, setSelectedIncidents] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedFunction, setSelectedFunction] = useState("");
+  const [editingIndex, setEditingIndex] = useState(null);
+  const handleSaveEdits = () => {
+    if (editingIndex === null) return;
+
+    setIncidentsData((prev) => {
+      const updated = [...prev];
+      updated[editingIndex] = { ...prev[editingIndex], ...selectedFunction };
+      return updated;
+    });
+
+    setIsEditing(false);
+    setOpenDialog(false);
+    setEditingIndex(null);
+  };
+
+  const [selectedFunction, setSelectedFunction] = useState({});
+
   // incident functions
   const handleGetIncidents = async () => {
     setLoadingIncidents(true);
@@ -276,7 +295,7 @@ function Slides() {
         />
       ),
       date: item.date, // add date field for the Date column
-      company: item.affected_organization || "N/A",
+      affected_organization: item.affected_organization || "N/A",
       executive_summary: truncateText(item.executive_summary, 5),
       hallucination_classification:
         item.hallucination_classification || "unknown",
@@ -287,16 +306,10 @@ function Slides() {
           color="info"
           size="small"
           onClick={() => {
-            setSelectedFunction({
-              company: item.company || "",
-              executive_summary: item.executive_summary || "",
-              background: item.background || "",
-              malicious_activity: item.malicious_activity || "",
-              outcomes_and_losses: item.outcomes_and_losses || "",
-              source_url: item.source_url || "",
-              hallucination_explanation: item.hallucination_explanation || "",
-              summariser_explanation: item.summariser_explanation || "",
-            });
+            setEditingIndex(index);
+            setSelectedFunction(
+              JSON.parse(JSON.stringify(incidentsData[index]))
+            ); // deep copy
             setIsEditing(false);
             setOpenDialog(true);
           }}
@@ -479,34 +492,40 @@ function Slides() {
       </MDBox>
 
       <MDBox px={3} pt={3}>
-          {uploadedFiles.length > 0 && (
-            <MDButton onClick={handleUpload} color="info" disabled={loading}>
-              {loading && <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />}
-              {loading ? "Uploading..." : "Process & Upload"}
-            </MDButton>
-          )}
+        {uploadedFiles.length > 0 && (
+          <MDButton onClick={handleUpload} color="info" disabled={loading}>
+            {loading && (
+              <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />
+            )}
+            {loading ? "Uploading..." : "Process & Upload"}
+          </MDButton>
+        )}
 
-          {success && (
-            <MDTypography variant="body2" color="success.main" mt={1}>
-              Upload successful!
-            </MDTypography>
-          )}
+        {success && (
+          <MDTypography variant="body2" color="success.main" mt={1}>
+            Upload successful!
+          </MDTypography>
+        )}
       </MDBox>
-      
+
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="sm"
-        fullWidth>
+        fullWidth
+      >
         <DialogTitle>Duplicate Claims Found</DialogTitle>
         <DialogContent>
           <DialogContentText>
             Some claim numbers already exist in the database:
-            <br /><br />
+            <br />
+            <br />
             {duplicates.slice(0, 5).join(", ")}
             {duplicates.length > 5 && "..."}
-            <br /><br />
-            Do you want to overwrite them? This will replace any existing data for those claims.
+            <br />
+            <br />
+            Do you want to overwrite them? This will replace any existing data
+            for those claims.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -517,7 +536,8 @@ function Slides() {
               await performUpload(pendingUploadData);
             }}
             color="error"
-            variant="contained">
+            variant="contained"
+          >
             Overwrite & Upload
           </MDButton>
         </DialogActions>
@@ -706,7 +726,7 @@ function Slides() {
         <DialogTitle>Incident Details</DialogTitle>
         <DialogContent dividers>
           {[
-            "company",
+            "affected_organization",
             "executive_summary",
             "background",
             "malicious_activity",
@@ -723,7 +743,7 @@ function Slides() {
                   multiline
                   fullWidth
                   minRows={4}
-                  value={selectedFunction[field]}
+                  value={selectedFunction[field] || ""}
                   onChange={(e) =>
                     setSelectedFunction((prev) => ({
                       ...prev,
@@ -784,7 +804,7 @@ function Slides() {
             <MDButton
               color="success"
               variant="gradient"
-              onClick={() => setIsEditing(false)}
+              onClick={handleSaveEdits}
             >
               Save
             </MDButton>
