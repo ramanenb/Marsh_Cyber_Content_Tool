@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 
 import bgImage from "assets/images/bg-reset-cover.jpeg";
+import MarshLogoImage from "assets/images/logos/Marsh_logo_noBG.png";
 
 import Stack from '@mui/material/Stack';
 import EqualizerIcon from '@mui/icons-material/Equalizer';
@@ -50,7 +51,7 @@ export default function SignInSide() {
     {
         icon: <CollectionsBookmarkIcon sx={{ color: 'navy' }} />,
         title: 'Automatic Cyber Incident Collation',
-        description:'Our product effortlessly gathers cyber incident data from multiple sources (inc Marsh Data Uploaded), saving time and effort.',
+        description:'Our tool effortlessly gathers cyber incident data from multiple sources (inc Marsh Data Uploaded), saving time and effort.',
     },
     {
         icon: <EqualizerIcon sx={{ color: 'navy' }} />,
@@ -144,14 +145,25 @@ export default function SignInSide() {
             }}>
                 <Box
                     sx={{
-                    py: 4,
-                    px: 4,
+                    py: 1,
+                    px: 2,
+                    backgroundImage: `url(${MarshLogoImage})`,
+                    backgroundSize: 250,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center',
+                    height: 65,
+                    }}
+                />
+                <Box
+                    sx={{
+                    py: 2,
+                    px: 2,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     }}
                 >
-                    <Typography component="h1" variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+                    <Typography component="h1" variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
                         Welcome Back!
                     </Typography>
 

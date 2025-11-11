@@ -11,9 +11,16 @@ export const getApiUrl = (endpoint) => {
 export const fetchWithFallback = async (endpoint, options = {}) => {
   const fetchOptions = {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    //headers: { 'Content-Type': 'application/json' },
     ...options,
   };
+  
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
+    fetchOptions.headers = {
+      'Content-Type': 'application/json',
+      ...fetchOptions.headers,
+    };
+  }
 
   if (!isEC2Down) {
     try {

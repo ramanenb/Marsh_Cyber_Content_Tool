@@ -55,14 +55,11 @@ function Slides() {
 
     try {
       // Check for duplicates
-      const checkRes = await fetch(
-        "http://localhost:8000/api/check_duplicates/",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
+      const checkRes = await fetchWithFallback("/api/check_duplicates/", {
+        method: "POST",
+        body: formData,
+      });
+  
       const checkData = await checkRes.json();
 
       if (checkData.status === "success" && checkData.duplicates.length > 0) {
@@ -84,7 +81,7 @@ function Slides() {
     setSuccess(false);
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload_prop_data/", {
+      const res = await fetchWithFallback("/api/upload_prop_data/", {
         method: "POST",
         body: formData,
       });
