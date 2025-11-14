@@ -1,20 +1,7 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
 
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
 
 /** 
-  All of the routes for the Material Dashboard 2 React are added here,
+  All of the routes for the Marsh Cyber Content Aggregation Tool are added here,
   You can add a new route, customize the routes and delete the routes here.
 
   Once you add a new route on this file it will be visible automatically on
@@ -40,13 +27,12 @@ import Slides from "layouts/slides";
 import Repository from "layouts/repository";
 import Dashboard from "layouts/dashboard/index";
 import MarshData_Dashboard from "layouts/dashboard/MarshData_Dashboard";
-import Notifications from "layouts/notifications";
-import Profile from "layouts/profile";
+
+import ProtectedRoute from "User_Authentication/ProtectedRoute";
 
 
 // @mui icons
 import Icon from "@mui/material/Icon";
-import ProtectedRoute from "User_Authentication/ProtectedRoute";
 
 const routes = [
   {
