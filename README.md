@@ -333,12 +333,12 @@ http://127.0.0.1:8000/docs
 | `/dashboard/Internet`     | Public-only internet incident data  |
 | `/slides`                 | Slide generation interface          |
 | `/repository`             | Document & presentation repository  |
-| `login` | Login                               |
+| `/login` | Login                               |
 
 ---
 
 Special thanks to:
 
 * Marsh Asia Cyber and Digital & Tech Teams (Jaydeep, Joseph, Linden, and Sam)
-* Supervisor Professor Rudy Setioo
+* Supervisor Professor Rudy Setiono
 * Teaching assistant: Ms. Liu Yan
