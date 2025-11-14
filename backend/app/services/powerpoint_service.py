@@ -235,7 +235,7 @@ async def get_company_logo(company_name: str, temp_dir: str) -> Optional[str]:
             return None
             
     except Exception as e:
-        print(f" rror fetching logo: {e}")
+        print(f" Error fetching logo: {e}")
         return None
 
 # ==================== PPT GENERATION FUNCTIONS ====================
